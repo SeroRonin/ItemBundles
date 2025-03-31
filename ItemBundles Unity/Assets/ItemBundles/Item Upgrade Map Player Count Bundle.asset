@@ -1,0 +1,31 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c30496d6ae6d6f907456e10a94e01ec6, type: 3}
+  m_Name: Item Upgrade Map Player Count Bundle
+  m_EditorClassIdentifier: 
+  disabled: 0
+  itemAssetName: Item Upgrade Map Player Count Bundle
+  itemName: Map Player Count Upgrade
+  description: 
+  itemType: 3
+  emojiIcon: 11
+  itemVolume: 6
+  itemSecretShopType: 0
+  colorPreset: {fileID: 11400000, guid: ab97cfaf438646046985c7081561d91e, type: 2}
+  prefab: {fileID: 1633042391857856, guid: 835c726a724817044a90e65386e2d1c0, type: 3}
+  value: {fileID: 11400000, guid: 5e0cb47fed0f999458f28492a8bf0219, type: 2}
+  maxAmount: 1
+  maxAmountInShop: 1
+  maxPurchase: 1
+  maxPurchaseAmount: 1
+  spawnRotationOffset: {x: 0, y: 0, z: 0, w: 1}
+  physicalItem: 1

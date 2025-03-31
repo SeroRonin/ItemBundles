@@ -1,0 +1,5 @@
+ItemBundles Unity/*
+!ItemBundles Unity/Assets/
+ItemBundles Unity/Assets/*
+!ItemBundles Unity/Assets/ItemBundles/
+!ItemBundles Unity/Assets/ItemBundles/**
