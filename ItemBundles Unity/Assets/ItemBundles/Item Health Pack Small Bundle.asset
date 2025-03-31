@@ -14,15 +14,15 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   disabled: 0
   itemAssetName: Item Health Pack Small Bundle
-  itemName: Small Health Pack (25)
+  itemName: Small Health Packs (25)
   description: 
   itemType: 8
   emojiIcon: 20
   itemVolume: 7
   itemSecretShopType: 0
-  colorPreset: {fileID: 11400000, guid: a5e6579351ad2a0499fc7c8ce30715b5, type: 2}
-  prefab: {fileID: 1493613452031752, guid: 93a27bd04ceb96548a46c41de5cd51f1, type: 3}
-  value: {fileID: 11400000, guid: da8c521a548470b47b264874a9122902, type: 2}
+  colorPreset: {fileID: 11400000, guid: 6df9cbffe1ad6964b9689f632f621b62, type: 2}
+  prefab: {fileID: 1540010371511003, guid: ac541f57fa7b10e44a9a6ec78827df43, type: 3}
+  value: {fileID: 11400000, guid: ed19220757f12af4294cd17752dcd4ba, type: 2}
   maxAmount: 3
   maxAmountInShop: 1
   maxPurchase: 0

@@ -72,10 +72,30 @@ namespace ItemBundles
         private static void ShowingInfo_Postfix( ItemAttributes __instance )
         {
             var promptPre = __instance.promptName;
-            if ( __instance.itemAssetName.Contains("Bundle") )
+            var bundleString = "Bundle";
+
+            // If we have a bundle asset name, add a little tag underneath it :)
+            if ( __instance.itemAssetName.Contains(bundleString) )
             {
-                var newPrompt = promptPre + "\n [Bundle]";
+                var newPrompt = promptPre + "\n[Bundle]";
                 __instance.promptName = newPrompt;
+
+                // If we're in a shop, remove interactable prompt
+                // This is a fix for consumable items, upgrades and health packs have their own code already
+                if (SemiFunc.RunIsShop())
+                {
+                    var itemTag = InputManager.instance.InputDisplayReplaceTags("[interact]");
+                    var interactString = " <color=#FFFFFF>[" + itemTag + "]</color>";
+                    if (__instance.promptName.Contains(interactString))
+                    {
+                        int index = __instance.promptName.IndexOf(interactString);
+                        var orignalName = (index < 0)
+                            ? __instance.promptName
+                            : __instance.promptName.Remove(index, interactString.Length);
+
+                        __instance.promptName = orignalName;
+                    }
+                }
             }
         }
     }

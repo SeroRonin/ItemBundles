@@ -14,15 +14,15 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   disabled: 0
   itemAssetName: Item Upgrade Player Tumble Launch Bundle
-  itemName: Tumble Launch Upgrade Bundle
+  itemName: Tumble Launch Upgrades
   description: 
   itemType: 3
   emojiIcon: 11
   itemVolume: 6
   itemSecretShopType: 0
-  colorPreset: {fileID: 11400000, guid: ab97cfaf438646046985c7081561d91e, type: 2}
-  prefab: {fileID: 1799231296425598, guid: bbac3bde2beef58488a8ac639f2f2150, type: 3}
-  value: {fileID: 11400000, guid: 2c359f5f104b6e04bb7644233d681292, type: 2}
+  colorPreset: {fileID: 11400000, guid: 0d9a3e51e7f7904499722ff95b5f00b3, type: 2}
+  prefab: {fileID: 1559955173072875, guid: 672f696bf113ef14f8ed17a3aabb64ad, type: 3}
+  value: {fileID: 11400000, guid: b995f9d995fc52a4f8dc1a1288a4dfde, type: 2}
   maxAmount: 10
   maxAmountInShop: 1
   maxPurchase: 0

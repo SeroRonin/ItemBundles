@@ -14,15 +14,15 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   disabled: 0
   itemAssetName: Item Health Pack Large Bundle
-  itemName: Large Health Pack (100)
+  itemName: Large Health Packs (100)
   description: 
   itemType: 8
   emojiIcon: 22
   itemVolume: 7
   itemSecretShopType: 0
-  colorPreset: {fileID: 11400000, guid: a5e6579351ad2a0499fc7c8ce30715b5, type: 2}
-  prefab: {fileID: 1757426412988292, guid: f560739b97f447a4dac2e958d0187c10, type: 3}
-  value: {fileID: 11400000, guid: 103d17c12db70f14ca943e3494b8775b, type: 2}
+  colorPreset: {fileID: 11400000, guid: 6df9cbffe1ad6964b9689f632f621b62, type: 2}
+  prefab: {fileID: 1960104676900963, guid: 94d1f6aa0a1d3114fa50e403f85bd297, type: 3}
+  value: {fileID: 11400000, guid: 3ed75df8a3ce61b4394ee7bada205419, type: 2}
   maxAmount: 3
   maxAmountInShop: 1
   maxPurchase: 0

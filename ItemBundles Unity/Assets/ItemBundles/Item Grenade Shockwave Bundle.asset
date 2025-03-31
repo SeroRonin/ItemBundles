@@ -10,20 +10,20 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: c30496d6ae6d6f907456e10a94e01ec6, type: 3}
-  m_Name: Item Health Pack Medium Bundle
+  m_Name: Item Grenade Shockwave Bundle
   m_EditorClassIdentifier: 
   disabled: 0
-  itemAssetName: Item Health Pack Medium Bundle
-  itemName: Medium Health Packs (50)
+  itemAssetName: Item Grenade Shockwave Bundle
+  itemName: Shockwave Grenades
   description: 
-  itemType: 8
-  emojiIcon: 21
-  itemVolume: 7
+  itemType: 6
+  emojiIcon: 32
+  itemVolume: 0
   itemSecretShopType: 0
-  colorPreset: {fileID: 11400000, guid: 6df9cbffe1ad6964b9689f632f621b62, type: 2}
-  prefab: {fileID: 1092777652418985, guid: 3c7aa2fb431a4484892952fa3badb87d, type: 3}
-  value: {fileID: 11400000, guid: 28b610b9c74697b4487a6470a89751d3, type: 2}
-  maxAmount: 3
+  colorPreset: {fileID: 11400000, guid: 0d9a3e51e7f7904499722ff95b5f00b3, type: 2}
+  prefab: {fileID: 1458549163809960, guid: a9cf3e08602a2ac4bb86959ce6833237, type: 3}
+  value: {fileID: 11400000, guid: e16e2eb829b4340458e5110154731684, type: 2}
+  maxAmount: 1
   maxAmountInShop: 1
   maxPurchase: 0
   maxPurchaseAmount: 1

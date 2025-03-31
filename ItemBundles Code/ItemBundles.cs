@@ -8,7 +8,7 @@ using UnityEngine;
 
 namespace ItemBundles
 {
-    [BepInPlugin("SeroRonin.ItemBundles", "ItemBundles", "1.0")]
+    [BepInPlugin("SeroRonin.ItemBundles", "ItemBundles", "1.1.0")]
     [BepInDependency(REPOLib.MyPluginInfo.PLUGIN_GUID, BepInDependency.DependencyFlags.HardDependency)]
     public class ItemBundles : BaseUnityPlugin
     {
@@ -44,6 +44,14 @@ namespace ItemBundles
             RegisterBundleItem(assetBundle, "Item Health Pack Small Bundle");
             RegisterBundleItem(assetBundle, "Item Health Pack Medium Bundle");
             RegisterBundleItem(assetBundle, "Item Health Pack Large Bundle");
+
+            RegisterBundleItem(assetBundle, "Item Grenade Explosive Bundle");
+            RegisterBundleItem(assetBundle, "Item Grenade Shockwave Bundle");
+            RegisterBundleItem(assetBundle, "Item Grenade Stun Bundle");
+
+            RegisterBundleItem(assetBundle, "Item Mine Explosive Bundle");
+            RegisterBundleItem(assetBundle, "Item Mine Shockwave Bundle");
+            RegisterBundleItem(assetBundle, "Item Mine Stun Bundle");
 
             Logger.LogInfo($"{Info.Metadata.GUID} v{Info.Metadata.Version} has loaded!");
         }

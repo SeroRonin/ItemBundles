@@ -14,15 +14,15 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   disabled: 0
   itemAssetName: Item Upgrade Map Player Count Bundle
-  itemName: Map Player Count Upgrade
+  itemName: Map Player Count Upgrades
   description: 
   itemType: 3
   emojiIcon: 11
   itemVolume: 6
   itemSecretShopType: 0
-  colorPreset: {fileID: 11400000, guid: ab97cfaf438646046985c7081561d91e, type: 2}
-  prefab: {fileID: 1633042391857856, guid: 835c726a724817044a90e65386e2d1c0, type: 3}
-  value: {fileID: 11400000, guid: 5e0cb47fed0f999458f28492a8bf0219, type: 2}
+  colorPreset: {fileID: 11400000, guid: 0d9a3e51e7f7904499722ff95b5f00b3, type: 2}
+  prefab: {fileID: 1310192160991527, guid: c50d4376492ebbc47a058da01b32948a, type: 3}
+  value: {fileID: 11400000, guid: c821c96708bba394bb1fccfc21ae8a45, type: 2}
   maxAmount: 1
   maxAmountInShop: 1
   maxPurchase: 1
