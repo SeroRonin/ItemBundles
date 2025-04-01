@@ -50,7 +50,7 @@ namespace ItemBundles
             var playerCount = SemiFunc.PlayerGetAll().Count;
             if (!SemiFunc.IsMultiplayer())
             {
-                for (int i = 0; i < 3; i++)
+                for (int i = 0; i < (playerCount + ItemBundles.Instance.config_debugFakePlayers.Value); i++)
                 {
                     Vector3 vector = new Vector3(0f, 0.2f * (float)i, 0f);
                     Object.Instantiate(itemPrefab, base.transform.position + vector, Quaternion.identity);
@@ -58,7 +58,7 @@ namespace ItemBundles
             }
             else if (SemiFunc.IsMasterClient())
             {
-                for (int j = 0; j < 3; j++)
+                for (int j = 0; j < (playerCount + ItemBundles.Instance.config_debugFakePlayers.Value); j++)
                 {
                     Vector3 vector2 = new Vector3(0f, 0.2f * (float)j, 0f);
                     GameObject obj = PhotonNetwork.Instantiate("Items/" + itemPrefab.name, base.transform.position + vector2, Quaternion.identity, 0);
