@@ -82,6 +82,8 @@ namespace ItemBundles
                 }
             }
 
+            healingBank += healAmount * ItemBundles.Instance.config_debugFakePlayers.Value;
+
             if (playersToHeal.Count < 0 )
             {
                 if (SemiFunc.IsMultiplayer())
@@ -137,7 +139,7 @@ namespace ItemBundles
             //Apply final healing
             foreach (KeyValuePair<PlayerAvatar, int> healEntry in playerHealthToHeal)
             {
-                ItemBundles.Logger.LogInfo($"{healEntry.Key.playerName} missing {healEntry.Key.playerHealth.maxHealth - healEntry.Key.playerHealth.health} health, healing for {healAmount} base + {healEntry.Value - healAmount} excess!");
+                CustomLogger.LogInfo($"{healEntry.Key.playerName} missing {healEntry.Key.playerHealth.maxHealth - healEntry.Key.playerHealth.health} health, healing for {healAmount} base + {healEntry.Value - healAmount} excess!", true);
                 healEntry.Key.playerHealth.HealOther(healEntry.Value, effect: true);
             }
             _ = StatsManager.instance.itemsPurchased[itemAttributes.item.itemAssetName];
