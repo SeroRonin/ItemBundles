@@ -1,6 +1,7 @@
 using Photon.Pun;
 using Steamworks.Ugc;
 using UnityEngine;
+using static b;
 using static SemiFunc;
 
 namespace ItemBundles
@@ -58,12 +59,31 @@ namespace ItemBundles
                 playerCount = Mathf.Max(playerCount, BundleHelper.GetItemBundleMinItem(BundleHelper.GetItemStringFromBundle(item), item.itemType));
             }
 
-            var randomSpawnOffset = Random.insideUnitSphere * 0.2f;
+            float offsetMult;
+            switch ( item.itemType )
+            {
+                case itemType.grenade:
+                    offsetMult = 0.25f;
+                    break;
+                case itemType.mine:
+                    offsetMult = 0.5f;
+                    break;
+                default:
+                    offsetMult = 0f; 
+                    break;
+            }
 
             if (!SemiFunc.IsMultiplayer())
             {
                 for (int i = 0; i < (playerCount + ItemBundles.Instance.config_debugFakePlayers.Value); i++)
                 {
+                    //Makes first item spawn in hand
+                    var randomSpawnOffset = Vector3.zero;
+                    if (i != 0)
+                    {
+                        randomSpawnOffset = Random.insideUnitSphere * offsetMult;
+                    }
+
                     var obj = Object.Instantiate(itemPrefab, base.transform.position + randomSpawnOffset, Quaternion.identity);
                     StatsManager.instance.ItemPurchase(obj.GetComponent<ItemAttributes>().item.itemAssetName);
                 }
@@ -72,6 +92,13 @@ namespace ItemBundles
             {
                 for (int j = 0; j < (playerCount + ItemBundles.Instance.config_debugFakePlayers.Value); j++)
                 {
+                    //Makes first item spawn in hand
+                    var randomSpawnOffset = Vector3.zero;
+                    if ( j != 0 )
+                    {
+                        randomSpawnOffset = Random.insideUnitSphere * offsetMult;
+                    }
+
                     GameObject obj = PhotonNetwork.Instantiate("Items/" + itemPrefab.name, base.transform.position + randomSpawnOffset, Quaternion.identity, 0);
                     StatsManager.instance.ItemPurchase(obj.GetComponent<ItemAttributes>().item.itemAssetName);
                 }

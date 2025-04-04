@@ -327,12 +327,14 @@ namespace ItemBundles
                 bundleShopItemPairs.Value.maxInShop = bundleShopItemPairs.Value.config_maxInShop.Value;
             }
 
-            // Bundles have no use in single player
-            if (!SemiFunc.IsMultiplayer()) return;
 
             CustomLogger.LogInfo($"------ Bundling Lists", true);
             AttemptBundlesFromList(ref __instance.potentialItems);
             AttemptBundlesFromList(ref __instance.potentialItemConsumables);
+
+            // Health and upgrade bundles have no use in single player
+            if (!SemiFunc.IsMultiplayer()) return;
+
             AttemptBundlesFromList(ref __instance.potentialItemUpgrades);
             AttemptBundlesFromList(ref __instance.potentialItemHealthPacks);
         }
