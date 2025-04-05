@@ -14,7 +14,7 @@ using static UnityEngine.Rendering.DebugUI;
 
 namespace ItemBundles
 {
-    [BepInPlugin("SeroRonin.ItemBundles", "ItemBundles", "1.2.0")]
+    [BepInPlugin("SeroRonin.ItemBundles", "ItemBundles", "1.2.1")]
     [BepInDependency(REPOLib.MyPluginInfo.PLUGIN_GUID, BepInDependency.DependencyFlags.HardDependency)]
     [BepInDependency("nickklmao.repoconfig", BepInDependency.DependencyFlags.HardDependency)]
     //[BepInDependency("BULLETBOT-MoreUpgrades-1.4.5", BepInDependency.DependencyFlags.SoftDependency)]
@@ -33,6 +33,7 @@ namespace ItemBundles
         public ConfigEntry<int> config_chanceBundlesInShop;
         public ConfigEntry<int> config_maxBundlesInShop;
         public ConfigEntry<int> config_minConsumablePerBundle;
+        public ConfigEntry<float> config_priceMultiplier;
         public ConfigEntry<int> config_debugFakePlayers;
         public ConfigEntry<bool> config_debugLogging;
 
@@ -46,6 +47,7 @@ namespace ItemBundles
             public ConfigEntry<int> config_chanceInShop;
             public ConfigEntry<int> config_maxInShop;
             public ConfigEntry<int> config_minPerBundle;
+            public ConfigEntry<float> config_priceMultiplier;
         }
 
         private void Awake()
@@ -135,28 +137,34 @@ namespace ItemBundles
             config_chanceBundlesInShop = Config.Bind("General", "Bundle Chance", 20, new ConfigDescription("Percent chance that an item will be replaced with a bundle variant", new AcceptableValueRange<int>(0, 100)));
             config_maxBundlesInShop = Config.Bind("General", "Maximum Bundles In Shop", -1, new ConfigDescription("Maximum number of bundles that can appear of ANY one type. Setting to -1 makes shop ignore this entry", new AcceptableValueRange<int>(-1, 10)));
             config_minConsumablePerBundle = Config.Bind("General", "Mininum consumables per bundle", 0, new ConfigDescription("Minimum amount of items in consumable bundles. Price still scales. Default: 0", new AcceptableValueRange<int>(0, 10)));
+            config_priceMultiplier = Config.Bind("General", "Bundle Price Multiplier", 66.66f, new ConfigDescription("Multiplier of total item costs that bundles have", new AcceptableValueRange<float>(0f, 200f)));
 
+            string overrideDesc = "Has Priority over General entry. Ignored if set below 0";
             itemTypeBundleInfo[SemiFunc.itemType.mine] = new BundleShopInfo
             {
-                config_chanceInShop = Config.Bind("Bundles: Item Type", "Mines: Chance", -1, new ConfigDescription("Overrides the General entry if not set to -1", new AcceptableValueRange<int>(-1, 100))),
-                config_maxInShop = Config.Bind("Bundles: Item Type", "Mines: Chance", -1, new ConfigDescription("Overrides the General entry if not set to -1", new AcceptableValueRange<int>(-1, 10))),
-                config_minPerBundle = Config.Bind("Bundles: Item Type", "Mines: Mininum per bundle", -1, new ConfigDescription("Overrides the General entry if not set to -1", new AcceptableValueRange<int>(-1, 10)))
+                config_chanceInShop = Config.Bind("Bundles: Item Type", "Mines: Chance", -1, new ConfigDescription(overrideDesc, new AcceptableValueRange<int>(-1, 100))),
+                config_maxInShop = Config.Bind("Bundles: Item Type", "Mines: Chance", -1, new ConfigDescription(overrideDesc, new AcceptableValueRange<int>(-1, 10))),
+                config_minPerBundle = Config.Bind("Bundles: Item Type", "Mines: Mininum per bundle", -1, new ConfigDescription(overrideDesc, new AcceptableValueRange<int>(-1, 10))),
+                config_priceMultiplier = Config.Bind("Bundles: Item Type", "Mines: Price Multiplier", -1f, new ConfigDescription(overrideDesc, new AcceptableValueRange<float>(-1f, 200f)))
             };
             itemTypeBundleInfo[SemiFunc.itemType.grenade] = new BundleShopInfo
             {
-                config_chanceInShop = Config.Bind("Bundles: Item Type", "Grenades: Chance", -1, new ConfigDescription("Overrides the General entry if not set to -1", new AcceptableValueRange<int>(-1, 100))),
-                config_maxInShop = Config.Bind("Bundles: Item Type", "Grenades: Max", -1, new ConfigDescription("Overrides the General entry if not set to -1", new AcceptableValueRange<int>(-1, 10))),
-                config_minPerBundle = Config.Bind("Bundles: Item Type", "Grenades: Mininum per bundle", -1, new ConfigDescription("Overrides the General entry if not set to -1", new AcceptableValueRange<int>(-1, 10)))
+                config_chanceInShop = Config.Bind("Bundles: Item Type", "Grenades: Chance", -1, new ConfigDescription(overrideDesc, new AcceptableValueRange<int>(-1, 100))),
+                config_maxInShop = Config.Bind("Bundles: Item Type", "Grenades: Max", -1, new ConfigDescription(overrideDesc, new AcceptableValueRange<int>(-1, 10))),
+                config_minPerBundle = Config.Bind("Bundles: Item Type", "Grenades: Mininum per bundle", -1, new ConfigDescription(overrideDesc, new AcceptableValueRange<int>(-1, 10))),
+                config_priceMultiplier = Config.Bind("Bundles: Item Type", "Grenades: Price Multiplier", -1f, new ConfigDescription(overrideDesc, new AcceptableValueRange<float>(-1f, 200f)))
             };
             itemTypeBundleInfo[SemiFunc.itemType.healthPack] = new BundleShopInfo
             {
-                config_chanceInShop = Config.Bind("Bundles: Item Type", "Health Packs: Chance", -1, new ConfigDescription("Overrides the General entry if not set to -1", new AcceptableValueRange<int>(-1, 100))),
-                config_maxInShop = Config.Bind("Bundles: Item Type", "Health Packs: Max", -1, new ConfigDescription("Overrides the General entry if not set to -1.", new AcceptableValueRange<int>(-1, 10)))
+                config_chanceInShop = Config.Bind("Bundles: Item Type", "Health Packs: Chance", -1, new ConfigDescription(overrideDesc, new AcceptableValueRange<int>(-1, 100))),
+                config_maxInShop = Config.Bind("Bundles: Item Type", "Health Packs: Max", -1, new ConfigDescription(overrideDesc, new AcceptableValueRange<int>(-1, 10))),
+                config_priceMultiplier = Config.Bind("Bundles: Item Type", "Health Packs: Price Multiplier", -1f, new ConfigDescription(overrideDesc, new AcceptableValueRange<float>(-1f, 200f)))
             };
             itemTypeBundleInfo[SemiFunc.itemType.item_upgrade] = new BundleShopInfo
             {
-                config_chanceInShop = Config.Bind("Bundles: Item Type", "Upgrades: Chance", -1, new ConfigDescription("Overrides the General entry if not set to -1", new AcceptableValueRange<int>(-1, 100))),
-                config_maxInShop = Config.Bind("Bundles: Item Type", "Upgrades: Max", -1, new ConfigDescription("Overrides the General entry if not set to -1", new AcceptableValueRange<int>(-1, 10)))
+                config_chanceInShop = Config.Bind("Bundles: Item Type", "Upgrades: Chance", -1, new ConfigDescription(overrideDesc, new AcceptableValueRange<int>(-1, 100))),
+                config_maxInShop = Config.Bind("Bundles: Item Type", "Upgrades: Max", -1, new ConfigDescription(overrideDesc, new AcceptableValueRange<int>(-1, 10))),
+                config_priceMultiplier = Config.Bind("Bundles: Item Type", "Upgrades: Price Multiplier", -1f, new ConfigDescription(overrideDesc, new AcceptableValueRange<float>(-1f, 200f)))
             };
 
             config_debugLogging = Config.Bind("Dev", "Debug Logging", false, new ConfigDescription("Enables debug logging", tags: "HideFromREPOConfig"));
@@ -209,15 +217,17 @@ namespace ItemBundles
 
             itemDictionaryShopBlacklist.Add(bundleItem.itemAssetName, bundleItem);
 
+            string overrideDesc = "Has Priority over Item Type entry. Ignored if set below 0";
             var bundleInfo = itemBundleInfo[originalItemString] = new BundleShopInfo {
                 bundleItem = bundleItem,
-                config_maxInShop = Config.Bind("Bundles: Item", $"{originalItem.itemName}: Max", -1, new ConfigDescription("Overrides the Item Type entry if not set to -1.", new AcceptableValueRange<int>(-1, 10))),
-                config_chanceInShop = Config.Bind("Bundles: Item", $"{originalItem.itemName}: Chance", -1, new ConfigDescription("Overrides the Item Type entry if not set to -1.", new AcceptableValueRange<int>(-1, 100)))
+                config_chanceInShop = Config.Bind("Bundles: Item", $"{originalItem.itemName}: Chance", -1, new ConfigDescription(overrideDesc, new AcceptableValueRange<int>(-1, 100))),
+                config_maxInShop = Config.Bind("Bundles: Item", $"{originalItem.itemName}: Max", -1, new ConfigDescription(overrideDesc, new AcceptableValueRange<int>(-1, 10))),
+                config_priceMultiplier = Config.Bind("Bundles: Item", $"{originalItem.itemName}: Price Multiplier", -1f, new ConfigDescription(overrideDesc, new AcceptableValueRange<float>(-1f, 200f)))
             };
 
             if (bundleItem.itemType == SemiFunc.itemType.grenade || bundleItem.itemType == SemiFunc.itemType.mine)
             {
-                bundleInfo.config_minPerBundle = Config.Bind("Bundles: Item", $"{originalItem.itemName}: Mininum per bundle", -1, new ConfigDescription("Overrides the Item Type entry if not set to -1.", new AcceptableValueRange<int>(-1, 10)));
+                bundleInfo.config_minPerBundle = Config.Bind("Bundles: Item", $"{originalItem.itemName}: Mininum per bundle", -1, new ConfigDescription(overrideDesc, new AcceptableValueRange<int>(-1, 10)));
             }
         }
 

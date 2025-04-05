@@ -19,13 +19,19 @@ namespace ItemBundles
         /// </summary>
         /// <param name="__instance"></param>
         /// <param name="itemName"></param>
-        [HarmonyPrefix, HarmonyPatch(nameof(StatsManager.AddItemsUpgradesPurchased))]
-        private static void AddItemsUpgradesPurchased_Prefix(StatsManager __instance, ref string itemName)
+        [HarmonyPostfix, HarmonyPatch(nameof(StatsManager.AddItemsUpgradesPurchased))]
+        private static void AddItemsUpgradesPurchased_Postfix(StatsManager __instance, ref string itemName)
         {
             var bundleString = " Bundle";
+
+            // Add base upgrades to make sure they scale properly
             if (itemName.Contains(bundleString))
             {
-                itemName = BundleHelper.GetItemStringFromBundle( itemName );
+                var originalItemName = BundleHelper.GetItemStringFromBundle(itemName);
+
+                Dictionary<string, int> dictionary = __instance.itemsUpgradesPurchased;
+                int num = dictionary[originalItemName];
+                dictionary[originalItemName] = num + 1;
             }
         }
 
@@ -41,7 +47,7 @@ namespace ItemBundles
     {
         /// <summary>
         /// Additional code that runs after GetValue to make bundles scale based off of player count. 
-        /// Original method does not return anything so we just have to brute-force recalculate the costs.
+        ///     Original method does not return anything so we just have to brute-force recalculate the costs.
         /// </summary>
         /// <param name="__instance"></param>
         [HarmonyPostfix, HarmonyPatch(nameof(ItemAttributes.GetValue))]
@@ -56,15 +62,37 @@ namespace ItemBundles
                 {
                     var currentValue = __instance.value;
 
-                    var playerCount = SemiFunc.PlayerGetAll().Count;
+                    var playerCount = PlayerGetAll().Count;
                     playerCount += ItemBundles.Instance.config_debugFakePlayers.Value;
+
+                    // Recalculate upgrade bundles to use base item instead of self, incase single upgrades have been bought
+                    if (__instance.itemType == itemType.item_upgrade)
+                    {
+                        float num = Random.Range(__instance.itemValueMin, __instance.itemValueMax) * ShopManager.instance.itemValueMultiplier;
+                        if (num < 1000f)
+                        {
+                            num = 1000f;
+                        }
+                        if (num >= 1000f)
+                        {
+                            num = Mathf.Ceil(num / 1000f);
+                        }
+                        num += num * ShopManager.instance.upgradeValueIncrease * (float)StatsManager.instance.GetItemsUpgradesPurchased( BundleHelper.GetItemStringFromBundle(__instance.itemAssetName) );
+
+                        __instance.value = (int)num;
+                    }
+
+                    // Adjust consumable bundle price by minimum value if higher than player count
                     if ( __instance.itemType == itemType.grenade || __instance.itemType == itemType.mine )
                     {
                         playerCount = Mathf.Max( playerCount, BundleHelper.GetItemBundleMinItem( BundleHelper.GetItemStringFromBundle(__instance.item), __instance.itemType ) );
                     }
+
+                    // If more than one player, apply player multiplier + percentage adjust
                     if (playerCount > 1)
                     {
-                        var twoThirds = playerCount * 0.6666f;
+                        var priceMult = BundleHelper.GetItemBundlePriceMult(BundleHelper.GetItemStringFromBundle(__instance.item), __instance.itemType) / 100f;
+                        var twoThirds = playerCount * priceMult;
                         currentValue = Mathf.RoundToInt(currentValue * twoThirds);
 
                         __instance.value = currentValue;
@@ -78,6 +106,10 @@ namespace ItemBundles
             }
         }
 
+        /// <summary>
+        /// Modifies item name displays with a little flare
+        /// </summary>
+        /// <param name="__instance"></param>
         [HarmonyPostfix, HarmonyPatch(nameof(ItemAttributes.ShowingInfo))]
         private static void ShowingInfo_Postfix(ItemAttributes __instance)
         {
@@ -105,10 +137,11 @@ namespace ItemBundles
         }
     }
 
+    #region DISABLED
+    /*
     [HarmonyPatch(typeof(DefaultPool))]
     internal static class BundlePatch_DefaultPool
     {
-        /*
         // OLD CODE, was used to override spawning behaviour of items when a bundle was involved before the creation of the blacklist
         [HarmonyPrefix, HarmonyPatch(nameof(DefaultPool.Instantiate))]
         public static bool Instantiate_Prefix(DefaultPool __instance, ref GameObject __result, string prefabId, Vector3 position, Quaternion rotation)
@@ -153,8 +186,9 @@ namespace ItemBundles
                 return false;
             }
             return true;
-        } */
-    }
+        } 
+    }*/
+    #endregion
 
     [HarmonyPatch(typeof(ShopManager))]
     [HarmonyPriority(Priority.Last)]
@@ -266,6 +300,13 @@ namespace ItemBundles
             */
         }
 
+        /// <summary>
+        /// IL Transpiler that replaces StatsManager.instance.itemDictionary with ItemBundles.Instance.itemDicitonaryShop
+        ///     itemDictionaryShop is populated in the prefix above and simply copies the itemDicitonary, while omiting anything in itemDicitonaryShopBlacklist
+        ///     this allows us to add items to the game without having them appear in the shop itself, something the base game nor REPOlib currently support
+        /// </summary>
+        /// <param name="instructions"></param>
+        /// <returns></returns>
         [HarmonyTranspiler, HarmonyPatch(nameof(ShopManager.GetAllItemsFromStatsManager))]
         static IEnumerable<CodeInstruction> GetAllItemsFromStatsManager_Transpiler(IEnumerable<CodeInstruction> instructions)
         {
@@ -307,8 +348,7 @@ namespace ItemBundles
         }
 
         /// <summary>
-        /// Check incoming list of items
-        /// Replace entries with bundled options if rolled
+        /// Check incoming list of items, replacing entries with bundled options
         /// </summary>
         /// <param name="__instance"></param>
         /// <param name="itemName"></param>

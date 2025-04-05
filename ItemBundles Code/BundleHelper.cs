@@ -62,6 +62,21 @@ namespace ItemBundles
             return output;
         }
 
+        public static float GetItemBundlePriceMult(string itemString, SemiFunc.itemType itemType)
+        {
+            var output = ItemBundles.Instance.config_priceMultiplier.Value;
+            if (ItemBundles.Instance.itemTypeBundleInfo[itemType].config_priceMultiplier.Value >= 0)
+            {
+                output = ItemBundles.Instance.itemTypeBundleInfo[itemType].config_priceMultiplier.Value;
+            }
+            if (ItemBundles.Instance.itemBundleInfo[itemString].config_priceMultiplier.Value >= 0)
+            {
+                output = ItemBundles.Instance.itemBundleInfo[itemString].config_priceMultiplier.Value;
+            }
+
+            return output;
+        }
+
         public static string GetItemStringFromBundle( Item bundleItem )
         {
             string bundleItemString = bundleItem.itemAssetName;
@@ -83,6 +98,7 @@ namespace ItemBundles
                 ? baseString
                 : baseString.Remove(index, removeString.Length);
 
+            CustomLogger.LogInfo($"--- Removing \"{removeString}\" from \"{baseString}\", got  \"{newString}\"", true);
             return newString;
         }
     }
