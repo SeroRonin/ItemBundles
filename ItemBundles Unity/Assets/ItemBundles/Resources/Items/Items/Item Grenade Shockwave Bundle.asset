@@ -18,7 +18,7 @@ MonoBehaviour:
   description: 
   itemType: 6
   emojiIcon: 32
-  itemVolume: 0
+  itemVolume: 1
   itemSecretShopType: 0
   colorPreset: {fileID: 11400000, guid: 0d9a3e51e7f7904499722ff95b5f00b3, type: 2}
   prefab: {fileID: 1458549163809960, guid: a9cf3e08602a2ac4bb86959ce6833237, type: 3}

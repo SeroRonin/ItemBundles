@@ -98,8 +98,22 @@ namespace ItemBundles
                 ? baseString
                 : baseString.Remove(index, removeString.Length);
 
-            CustomLogger.LogInfo($"--- Removing \"{removeString}\" from \"{baseString}\", got  \"{newString}\"", true);
+            //CustomLogger.LogInfo($"--- Removing \"{removeString}\" from \"{baseString}\", got  \"{newString}\"", true);
             return newString;
+        }
+
+        public static List<PlayerAvatar> PlayerGetAllAlive()
+        {
+            var playerList = new List<PlayerAvatar>();
+            foreach (var player in SemiFunc.PlayerGetAll())
+            {
+                if ( player.playerHealth.health > 0 )
+                {
+                    playerList.Add(player);
+                }
+            }
+
+            return playerList;
         }
     }
 }

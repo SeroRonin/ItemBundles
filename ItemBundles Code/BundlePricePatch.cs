@@ -1,12 +1,14 @@
 ﻿using HarmonyLib;
 using Photon.Pun;
 using Steamworks.Ugc;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
 using UnityEngine;
 using static SemiFunc;
+using static UnityEngine.SpookyHash;
 
 namespace ItemBundles
 {
@@ -68,7 +70,7 @@ namespace ItemBundles
                     // Recalculate upgrade bundles to use base item instead of self, incase single upgrades have been bought
                     if (__instance.itemType == itemType.item_upgrade)
                     {
-                        float num = Random.Range(__instance.itemValueMin, __instance.itemValueMax) * ShopManager.instance.itemValueMultiplier;
+                        float num = UnityEngine.Random.Range(__instance.itemValueMin, __instance.itemValueMax) * ShopManager.instance.itemValueMultiplier;
                         if (num < 1000f)
                         {
                             num = 1000f;
@@ -107,6 +109,54 @@ namespace ItemBundles
         }
 
         /// <summary>
+        /// Adds an additional check to name display to prevent adding Interact text to bundles while in the shop
+        /// </summary>
+        /// <param name="instructions"></param>
+        /// <returns></returns>
+        [HarmonyTranspiler, HarmonyPatch(nameof(ItemAttributes.ShowingInfo))]
+        static IEnumerable<CodeInstruction> ShowingInfo_Transpiler(IEnumerable<CodeInstruction> instructions)
+        {
+            var codeMatcher = new CodeMatcher(instructions /*, ILGenerator generator*/);
+
+            //
+            // Expected Behavior: Add check to ShowingInfo() Line 13
+            // bool flag = SemiFunc.RunIsShop() && (this.itemType == SemiFunc.itemType.item_upgrade || this.itemType == SemiFunc.itemType.healthPack);
+            // to
+            // bool flag = SemiFunc.RunIsShop() && (this.itemType == SemiFunc.itemType.item_upgrade || this.itemAssetName.Contains("Bundle") || this.itemType == SemiFunc.itemType.healthPack;
+            //
+
+            // Expect IL_0040
+            codeMatcher.MatchForward(true, (CodeMatch[])(object)new CodeMatch[3]
+            {
+                new CodeMatch((OpCode?)OpCodes.Ldfld),
+                new CodeMatch((OpCode?)OpCodes.Ldc_I4_3),
+                new CodeMatch((OpCode?)OpCodes.Beq)
+            })
+            .ThrowIfInvalid("ShowingInfo(): Couldn't find matching code");
+
+            // IL_004D label
+            var exitOperand = codeMatcher.Operand;
+            codeMatcher.Advance(1);
+
+            codeMatcher.Insert((CodeInstruction[])(object)new CodeInstruction[5]
+            {
+                // store "this" to stack
+			    new CodeInstruction(OpCodes.Ldarg_0),
+                // consume stack obj 0, store current stack's itemAssetName field to stack
+                new CodeInstruction(OpCodes.Ldfld, (object)AccessTools.Field(typeof(ItemAttributes), "itemAssetName")),
+                // store "Bundle" to stack
+                new CodeInstruction(OpCodes.Ldstr, "Bundle"),
+                // see if stack obj 0 contains stack obj 1,                                                                v This helps specify which overload of method to use, we want the default so we only have one string param 
+                new CodeInstruction(OpCodes.Call, (object)AccessTools.Method(typeof(String), nameof(string.Contains), new System.Type[] { typeof(string) })),
+                // move to IL_004D if above statement is true
+			    new CodeInstruction(OpCodes.Brtrue, exitOperand)
+            });
+            CustomLogger.LogInfo("--- ShowingInfo(): ADDING NEW INSTRUCTIONS", true);
+
+            return codeMatcher.InstructionEnumeration();
+        }
+
+        /// <summary>
         /// Modifies item name displays with a little flare
         /// </summary>
         /// <param name="__instance"></param>
@@ -119,76 +169,48 @@ namespace ItemBundles
             // If we have a bundle asset name, add a little tag underneath it :)
             if (__instance.itemAssetName.Contains(bundleString))
             {
-                var newPrompt = promptPre + "\n[Bundle]";
-                __instance.promptName = newPrompt;
+                var numText = "";
+                var playerCount = SemiFunc.PlayerGetAll().Count;
+                if ( __instance.itemType == itemType.healthPack )
+                {
+                    var heal = __instance.GetComponent<ItemHealthPackBundle>().healAmount;
+                    numText = (BundleHelper.PlayerGetAllAlive().Count * heal).ToString() + "hp";
+                }
+                else if (__instance.itemType == itemType.grenade || __instance.itemType == itemType.mine)
+                {
+                    numText = Mathf.Max(playerCount, BundleHelper.GetItemBundleMinItem(BundleHelper.GetItemStringFromBundle(__instance.item), __instance.itemType)).ToString();
+                }
+                else if ( __instance.itemType == itemType.item_upgrade )
+                {
+                    numText = playerCount.ToString();
+                }
 
-                // If we're in a shop, remove interactable prompt
+                promptPre = promptPre + $"\n[Bundle of {numText}]";
+                __instance.promptName = promptPre;
+
+
+                // REPLACED WITH ABOVE TRANSPILER
+                // This method was tanking frames because InputManager.instance.InputDisplayReplaceTags("[interact]") loops through every input binding and is called every frame
+                // The below change worked but I wanted a better solution so the transpiler version was made
+                /*
+                //If we're in a shop, remove interactable prompt
                 // This is a fix for consumable items, upgrades and health packs have their own code already
                 if (SemiFunc.RunIsShop())
                 {
-                    var itemTag = InputManager.instance.InputDisplayReplaceTags("[interact]");
-                    var interactString = " <color=#FFFFFF>[" + itemTag + "]</color>";
+                    //var interactKeyText = InputManager.instance.InputDisplayReplaceTags("[interact]")
+                    var inputManager = InputManager.instance;
+                    var interactKey = inputManager.tagDictionary["[interact]"];
+                    var interactKeyText = inputManager.InputDisplayGet(interactKey, MenuKeybind.KeyType.InputKey, MovementDirection.Up);
+                
+                    var interactString = " <color=#FFFFFF>[<u><b>" + interactKeyText + "/b></u>]</color>";
                     if (__instance.promptName.Contains(interactString))
                     {
                         __instance.promptName = BundleHelper.RemoveString(__instance.promptName, interactString);
                     }
-                }
+                }*/
             }
         }
     }
-
-    #region DISABLED
-    /*
-    [HarmonyPatch(typeof(DefaultPool))]
-    internal static class BundlePatch_DefaultPool
-    {
-        // OLD CODE, was used to override spawning behaviour of items when a bundle was involved before the creation of the blacklist
-        [HarmonyPrefix, HarmonyPatch(nameof(DefaultPool.Instantiate))]
-        public static bool Instantiate_Prefix(DefaultPool __instance, ref GameObject __result, string prefabId, Vector3 position, Quaternion rotation)
-        {
-            if (prefabId.Contains("Bundle"))
-            {
-                GameObject value = null;
-                if (!__instance.ResourceCache.TryGetValue(prefabId, out value))
-                {
-                    var itemPathString = "Items/";
-                    var originalPrefabName = prefabId;
-                    if ( prefabId.Contains(itemPathString) )
-                    {
-                        BundleHelper.RemoveString(prefabId, itemPathString);
-                    }
-
-                    value = ItemBundles.Instance.assetBundle.LoadAsset<GameObject>(originalPrefabName);
-                    if (value == null)
-                    {
-                        CustomLogger.LogError("failed to load \"" + originalPrefabName + "\"");
-                        return false;
-                    }
-                    else
-                    {
-                        if ( !__instance.ResourceCache.ContainsKey(originalPrefabName) )
-                        {
-                            __instance.ResourceCache.Add(originalPrefabName, value);
-                        }
-                    }
-                }
-
-                bool activeSelf = value.activeSelf;
-                if (activeSelf)
-                {
-                    value.SetActive(value: false);
-                }
-                __result = Object.Instantiate(value, position, rotation);
-                if (activeSelf)
-                {
-                    value.SetActive(value: true);
-                }
-                return false;
-            }
-            return true;
-        } 
-    }*/
-    #endregion
 
     [HarmonyPatch(typeof(ShopManager))]
     [HarmonyPriority(Priority.Last)]
@@ -218,86 +240,6 @@ namespace ItemBundles
                 CustomLogger.LogInfo($"------ Adding {entry.Key} or {entry.Value} to shop list", true);
                 ItemBundles.Instance.itemDictionaryShop.Add(entry.Key, entry.Value);
             }
-
-            // OLD OVERWRITE CODE
-            // Replaced with below transpiler
-            /*
-            __instance.potentialItems.Clear();
-            __instance.potentialItemConsumables.Clear();
-            __instance.potentialItemUpgrades.Clear();
-            __instance.potentialItemHealthPacks.Clear();
-            __instance.potentialSecretItems.Clear();
-            foreach (Item value in ItemBundles.Instance.itemDictionaryShop.Values)
-            {
-                int num = SemiFunc.StatGetItemsPurchased(value.itemAssetName);
-                float num2 = value.value.valueMax / 1000f * __instance.itemValueMultiplier;
-                if (value.itemType == SemiFunc.itemType.item_upgrade)
-                {
-                    num2 -= num2 * 0.05f * (float)(GameDirector.instance.PlayerList.Count - 1);
-                    int itemsUpgradesPurchased = StatsManager.instance.GetItemsUpgradesPurchased(value.itemAssetName);
-                    num2 += num2 * __instance.upgradeValueIncrease * (float)itemsUpgradesPurchased;
-                    num2 = Mathf.Ceil(num2);
-                }
-                if (value.itemType == SemiFunc.itemType.healthPack)
-                {
-                    num2 += num2 * __instance.healthPackValueIncrease * (float)RunManager.instance.levelsCompleted;
-                    num2 = Mathf.Ceil(num2);
-                }
-                if (value.itemType == SemiFunc.itemType.power_crystal)
-                {
-                    num2 += num2 * __instance.crystalValueIncrease * (float)RunManager.instance.levelsCompleted;
-                    num2 = Mathf.Ceil(num2);
-                }
-                float num3 = Mathf.Clamp(num2, 1f, num2);
-                bool flag = value.itemType == SemiFunc.itemType.power_crystal;
-                bool flag2 = value.itemType == SemiFunc.itemType.item_upgrade;
-                bool flag3 = value.itemType == SemiFunc.itemType.healthPack;
-                int maxAmountInShop = value.maxAmountInShop;
-                if (num >= maxAmountInShop || (value.maxPurchase && StatsManager.instance.GetItemsUpgradesPurchasedTotal(value.itemAssetName) >= value.maxPurchaseAmount) || (!(num3 <= (float)__instance.totalCurrency) && Random.Range(0, 100) >= 25))
-                {
-                    continue;
-                }
-                for (int i = 0; i < maxAmountInShop - num; i++)
-                {
-                    if (flag2)
-                    {
-                        __instance.potentialItemUpgrades.Add(value);
-                        continue;
-                    }
-                    if (flag3)
-                    {
-                        __instance.potentialItemHealthPacks.Add(value);
-                        continue;
-                    }
-                    if (flag)
-                    {
-                        __instance.potentialItemConsumables.Add(value);
-                        continue;
-                    }
-                    if (value.itemSecretShopType == SemiFunc.itemSecretShopType.none)
-                    {
-                        __instance.potentialItems.Add(value);
-                        continue;
-                    }
-                    if (!__instance.potentialSecretItems.ContainsKey(value.itemSecretShopType))
-                    {
-                        __instance.potentialSecretItems.Add(value.itemSecretShopType, new List<Item>());
-                    }
-                    __instance.potentialSecretItems[value.itemSecretShopType].Add(value);
-                }
-            }
-            __instance.potentialItems.Shuffle();
-            __instance.potentialItemConsumables.Shuffle();
-            __instance.potentialItemUpgrades.Shuffle();
-            __instance.potentialItemHealthPacks.Shuffle();
-            foreach (List<Item> value2 in __instance.potentialSecretItems.Values)
-            {
-                value2.Shuffle();
-            }
-
-            // Replace/skip original function
-            return false;
-            */
         }
 
         /// <summary>
@@ -310,41 +252,32 @@ namespace ItemBundles
         [HarmonyTranspiler, HarmonyPatch(nameof(ShopManager.GetAllItemsFromStatsManager))]
         static IEnumerable<CodeInstruction> GetAllItemsFromStatsManager_Transpiler(IEnumerable<CodeInstruction> instructions)
         {
-            var code = new List<CodeInstruction>(instructions);
-            int insertIndex = -1;
-            for (int i = 0; i < code.Count - 1; i++) // -1 since we will be checking i + 1
+            var codeMatcher = new CodeMatcher(instructions /*, ILGenerator generator*/);
+            //
+            // Expected Behavior: Replace dictionary at GetAllItemsFromStatsManager() Line 14
+            // foreach (Item item in StatsManager.instance.itemDictionary.Values)
+            // to
+            // foreach (Item item in ItemBundles.instance.itemDictionaryShop.Values)
+            //
+
+            // Expect IL_003F
+            codeMatcher.MatchForward(false, (CodeMatch[])(object)new CodeMatch[3]
             {
-                if (code[i].opcode == OpCodes.Ldsfld && code[i + 1].opcode == OpCodes.Ldfld)
-                {
-                    insertIndex = i;
-                    break;
-                }
-            }
+                new CodeMatch((OpCode?)OpCodes.Ldsfld),
+                new CodeMatch((OpCode?)OpCodes.Ldfld),
+                new CodeMatch((OpCode?)OpCodes.Callvirt)
+            })
+            .ThrowIfInvalid("GetAllItemsFromStatsManager(): Couldn't find matching code");
 
-            object replace1 = code[insertIndex].operand;
-            object replace2 = code[insertIndex + 1].operand;
+            CustomLogger.LogInfo("--- GetAllItemsFromStatsManager(): ADDING NEW INSTRUCTIONS", true);
 
-            object itemBundlesInstanceField = (object)(typeof(ItemBundles).GetProperty(nameof(ItemBundles.Instance), BindingFlags.NonPublic | BindingFlags.Static).GetGetMethod(true));
-            object itemDictionaryShopField = (object)(typeof(ItemBundles).GetField(nameof(ItemBundles.itemDictionaryShop)));
+            // Replace Ldsfld with Call because we need to access a property instead of a field
+            codeMatcher.Opcode = OpCodes.Call;
+            codeMatcher.Operand = AccessTools.PropertyGetter(typeof(ItemBundles), "Instance");
+            codeMatcher.Advance(1);
+            codeMatcher.Operand = AccessTools.Field(typeof(ItemBundles), "itemDictionaryShop");
 
-            CustomLogger.LogInfo($"------" +
-                $"\n--- Replacing {replace1} of type {replace1.GetType()} with {itemBundlesInstanceField} of type {itemBundlesInstanceField.GetType()}" +
-                $"\n--- Replacing {replace2} of type {replace2.GetType()} with {itemDictionaryShopField} of type {itemDictionaryShopField.GetType()}", true);
-
-            if (itemBundlesInstanceField == null || itemDictionaryShopField == null)
-            {
-                CustomLogger.LogError($"------NULL OPERAND REPLACEMENT!!!\n--- itemBundlesInstanceField: {itemBundlesInstanceField}\n--- itemDictionaryShopField: {itemDictionaryShopField}");
-            }
-            else if (insertIndex != -1)
-            {
-                code[insertIndex].opcode = OpCodes.Call;
-                code[insertIndex].operand = itemBundlesInstanceField;
-                code[insertIndex + 1].operand = itemDictionaryShopField;
-            }
-
-
-
-            return code;
+            return codeMatcher.InstructionEnumeration();
         }
 
         /// <summary>
@@ -366,7 +299,6 @@ namespace ItemBundles
                 bundleShopItemPairs.Value.chanceInShop = bundleShopItemPairs.Value.config_chanceInShop.Value;
                 bundleShopItemPairs.Value.maxInShop = bundleShopItemPairs.Value.config_maxInShop.Value;
             }
-
 
             CustomLogger.LogInfo($"------ Bundling Lists", true);
             AttemptBundlesFromList(ref __instance.potentialItems);
@@ -404,7 +336,7 @@ namespace ItemBundles
                         continue;
                     }
 
-                    var rand = Random.Range(0f, 1f);
+                    var rand = UnityEngine.Random.Range(0f, 1f);
                     if (rand <= bundleFinalChance)
                     {
                         //REPLACE ITEM WITH BUNDLE

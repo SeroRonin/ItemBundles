@@ -42,6 +42,7 @@ namespace ItemBundles
 
                 StatsManager.instance.ItemRemove(this.GetComponent<ItemAttributes>().instanceName);
 
+                impactDetector.destroyDisable = false;
                 impactDetector.DestroyObject(effects: false);
                 used = true;
             }

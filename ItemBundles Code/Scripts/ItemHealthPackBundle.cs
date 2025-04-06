@@ -75,7 +75,7 @@ namespace ItemBundles
             foreach ( var player in SemiFunc.PlayerGetAll() )
             {
                 // Only factor living players with missing health into later healing calculations
-                if (player.playerHealth.health <= player.playerHealth.maxHealth && player.playerHealth.health > 0 )
+                if (player.playerHealth.health < player.playerHealth.maxHealth && player.playerHealth.health > 0 )
                 {
                     healingBank += healAmount;
                     playersToHeal.Add( player );
@@ -84,7 +84,7 @@ namespace ItemBundles
 
             healingBank += healAmount * ItemBundles.Instance.config_debugFakePlayers.Value;
 
-            if (playersToHeal.Count < 0 )
+            if ( playersToHeal.Count <= 0 )
             {
                 if (SemiFunc.IsMultiplayer())
                 {
@@ -144,6 +144,8 @@ namespace ItemBundles
             }
             _ = StatsManager.instance.itemsPurchased[itemAttributes.item.itemAssetName];
             StatsManager.instance.ItemRemove(itemAttributes.instanceName);
+
+            physGrabObject.impactDetector.destroyDisable = false;
             physGrabObject.impactDetector.indestructibleBreakEffects = true;
 
             if (SemiFunc.IsMultiplayer())

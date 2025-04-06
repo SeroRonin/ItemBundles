@@ -14,7 +14,7 @@ using static UnityEngine.Rendering.DebugUI;
 
 namespace ItemBundles
 {
-    [BepInPlugin("SeroRonin.ItemBundles", "ItemBundles", "1.2.1")]
+    [BepInPlugin("SeroRonin.ItemBundles", "ItemBundles", "1.3.0")]
     [BepInDependency(REPOLib.MyPluginInfo.PLUGIN_GUID, BepInDependency.DependencyFlags.HardDependency)]
     [BepInDependency("nickklmao.repoconfig", BepInDependency.DependencyFlags.HardDependency)]
     //[BepInDependency("BULLETBOT-MoreUpgrades-1.4.5", BepInDependency.DependencyFlags.SoftDependency)]
@@ -39,6 +39,7 @@ namespace ItemBundles
 
         public Dictionary<SemiFunc.itemType, BundleShopInfo> itemTypeBundleInfo = new Dictionary<SemiFunc.itemType, BundleShopInfo>();
         public Dictionary<string, BundleShopInfo> itemBundleInfo = new Dictionary<string, BundleShopInfo>();
+        public string interactString;
         public class BundleShopInfo
         {
             public Item bundleItem;
@@ -83,6 +84,13 @@ namespace ItemBundles
 
         public void RegisterItemBundles()
         {
+            if (assetBundle == null)
+            {
+                CustomLogger.LogError($"Assetbundle \"itembundles\" not found! Please make sure that it exists in the same folder as the mod DLL");
+                CustomLogger.LogError($"ItemBundles has run into a fatal error! The mod will not work correctly and may cause issues elsewhere!");
+                return;
+            }
+
             RegisterBundleItemRepoLib(assetBundle, "Item Upgrade Map Player Count Bundle");
             RegisterBundleItemRepoLib(assetBundle, "Item Upgrade Player Energy Bundle");
             RegisterBundleItemRepoLib(assetBundle, "Item Upgrade Player Extra Jump Bundle");
@@ -108,6 +116,13 @@ namespace ItemBundles
 
         public void InitializeItemBundles()
         {
+            if (assetBundle == null)
+            {
+                CustomLogger.LogError($"Assetbundle \"itembundles\" not found! Please make sure that it exists in the same folder as the mod DLL");
+                CustomLogger.LogError($"ItemBundles has run into a fatal error! The mod will not work correctly and may cause issues elsewhere!");
+                return;
+            }
+
             RegisterBundleItemCustom(assetBundle, "Item Upgrade Map Player Count Bundle");
             RegisterBundleItemCustom(assetBundle, "Item Upgrade Player Energy Bundle");
             RegisterBundleItemCustom(assetBundle, "Item Upgrade Player Extra Jump Bundle");
