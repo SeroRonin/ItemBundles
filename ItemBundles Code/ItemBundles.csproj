@@ -36,6 +36,12 @@
 		<Reference Include="REPOConfig">
 			<HintPath>..\libs\REPOConfig.dll</HintPath>
 		</Reference>
+		<Reference Include="MoreUpgrades">
+			<HintPath>..\libs\MoreUpgrades.dll</HintPath>
+		</Reference>
+		<Reference Include="VanillaUpgrades">
+			<HintPath>..\libs\VanillaUpgrades.dll</HintPath>
+		</Reference>
 	</ItemGroup>
 	
 </Project>

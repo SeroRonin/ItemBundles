@@ -2,27 +2,21 @@
 using BepInEx.Configuration;
 using BepInEx.Logging;
 using HarmonyLib;
-using JetBrains.Annotations;
-using REPOLib.Extensions;
-using REPOLib.Modules;
-using Steamworks.Ugc;
-using System.Collections;
+using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Reflection;
 using UnityEngine;
-using static UnityEngine.Rendering.DebugUI;
 
 namespace ItemBundles
 {
     [BepInPlugin("SeroRonin.ItemBundles", "ItemBundles", "1.3.0")]
     [BepInDependency(REPOLib.MyPluginInfo.PLUGIN_GUID, BepInDependency.DependencyFlags.HardDependency)]
     [BepInDependency("nickklmao.repoconfig", BepInDependency.DependencyFlags.HardDependency)]
-    //[BepInDependency("BULLETBOT-MoreUpgrades-1.4.5", BepInDependency.DependencyFlags.SoftDependency)]
+    [BepInDependency("bulletbot.moreupgrades", BepInDependency.DependencyFlags.SoftDependency)]
     public class ItemBundles : BaseUnityPlugin
     {
-        internal static ItemBundles Instance { get; private set; } = null!;
-        internal new static ManualLogSource Logger => Instance._logger;
-        private ManualLogSource _logger => base.Logger;
+        public static ItemBundles Instance { get; private set; } = null!;
         internal Harmony? Harmony { get; set; }
 
         public AssetBundle assetBundle;
@@ -30,16 +24,18 @@ namespace ItemBundles
         public Dictionary<string, Item> itemDictionaryShop = new Dictionary<string, Item>();
         public Dictionary<string, Item> itemDictionaryShopBlacklist = new Dictionary<string, Item>();
 
-        public ConfigEntry<int> config_chanceBundlesInShop;
-        public ConfigEntry<int> config_maxBundlesInShop;
-        public ConfigEntry<int> config_minConsumablePerBundle;
-        public ConfigEntry<float> config_priceMultiplier;
-        public ConfigEntry<int> config_debugFakePlayers;
-        public ConfigEntry<bool> config_debugLogging;
+        public ConfigEntry<bool> config_disableBundlesSP { get; private set; }
+        public ConfigEntry<int> config_chanceBundlesInShop { get; private set; }
+        public ConfigEntry<int> config_maxBundlesInShop { get; private set; }
+        public ConfigEntry<int> config_minConsumablePerBundle { get; private set; }
+        public ConfigEntry<float> config_priceMultiplier { get; private set; }
+        public ConfigEntry<int> config_debugFakePlayers { get; private set; }
+        public ConfigEntry<bool> config_debugLogging { get; private set; }
 
         public Dictionary<SemiFunc.itemType, BundleShopInfo> itemTypeBundleInfo = new Dictionary<SemiFunc.itemType, BundleShopInfo>();
         public Dictionary<string, BundleShopInfo> itemBundleInfo = new Dictionary<string, BundleShopInfo>();
-        public string interactString;
+
+        public bool moreUpgradesLoaded;
         public class BundleShopInfo
         {
             public Item bundleItem;
@@ -57,7 +53,7 @@ namespace ItemBundles
             if (Instance) return;
 
             Instance = this;
-            CustomLogger.Init(base.Logger);
+            ItemBundlesLogger.Init(base.Logger);
 
             string pluginFolderPath = Path.GetDirectoryName(Info.Location);
             string assetBundleFilePath = Path.Combine(pluginFolderPath, "itembundles");
@@ -71,14 +67,15 @@ namespace ItemBundles
 
             Patch();
 
-            if (BepInEx.Bootstrap.Chainloader.PluginInfos.ContainsKey("BULLETBOT-MoreUpgrades-1.4.5"))
+            if (BepInEx.Bootstrap.Chainloader.PluginInfos.ContainsKey("bulletbot.moreupgrades"))
             {
-                //Modules.Config.CreateRiskofOptionsCompat();
+                moreUpgradesLoaded = true;
+                MoreUpgradesCompat.InitCompat();
             }
 
             RegisterItemBundles();
 
-            CustomLogger.LogInfo($"{Info.Metadata.GUID} v{Info.Metadata.Version} has loaded!");
+            ItemBundlesLogger.LogInfo($"{Info.Metadata.GUID} v{Info.Metadata.Version} has loaded!");
         }
 
 
@@ -86,8 +83,8 @@ namespace ItemBundles
         {
             if (assetBundle == null)
             {
-                CustomLogger.LogError($"Assetbundle \"itembundles\" not found! Please make sure that it exists in the same folder as the mod DLL");
-                CustomLogger.LogError($"ItemBundles has run into a fatal error! The mod will not work correctly and may cause issues elsewhere!");
+                ItemBundlesLogger.LogError($"Assetbundle \"itembundles\" not found! Please make sure that it exists in the same folder as the mod DLL");
+                ItemBundlesLogger.LogError($"ItemBundles has run into a fatal error! The mod will not work correctly and may cause issues elsewhere!");
                 return;
             }
 
@@ -118,8 +115,8 @@ namespace ItemBundles
         {
             if (assetBundle == null)
             {
-                CustomLogger.LogError($"Assetbundle \"itembundles\" not found! Please make sure that it exists in the same folder as the mod DLL");
-                CustomLogger.LogError($"ItemBundles has run into a fatal error! The mod will not work correctly and may cause issues elsewhere!");
+                ItemBundlesLogger.LogError($"Assetbundle \"itembundles\" not found! Please make sure that it exists in the same folder as the mod DLL");
+                ItemBundlesLogger.LogError($"ItemBundles has run into a fatal error! The mod will not work correctly and may cause issues elsewhere!");
                 return;
             }
 
@@ -144,11 +141,20 @@ namespace ItemBundles
             RegisterBundleItemCustom(assetBundle, "Item Mine Explosive Bundle");
             RegisterBundleItemCustom(assetBundle, "Item Mine Shockwave Bundle");
             RegisterBundleItemCustom(assetBundle, "Item Mine Stun Bundle");
+
+            if ( moreUpgradesLoaded )
+            {
+                MoreUpgradesCompat.RegisterBundleItem_MoreUpgrades(assetBundle, "Modded Item Upgrade Player Map Enemy Tracker Bundle");
+                MoreUpgradesCompat.RegisterBundleItem_MoreUpgrades(assetBundle, "Modded Item Upgrade Player Map Player Tracker Bundle");
+                MoreUpgradesCompat.RegisterBundleItem_MoreUpgrades(assetBundle, "Modded Item Upgrade Player Sprint Usage Bundle");
+                MoreUpgradesCompat.RegisterBundleItem_MoreUpgrades(assetBundle, "Modded Item Upgrade Player Valuable Count Bundle");
+            }
         }
 
         public void CreateConfigs()
         {
             //TODO: Re-add max total bundles once I figure out how to not make it stop on first list.
+            config_disableBundlesSP = Config.Bind("General", "Disable Bundles in Singleplayer", true, new ConfigDescription("Whether bundles are disabled when doing a singleplayer run"));
             config_chanceBundlesInShop = Config.Bind("General", "Bundle Chance", 20, new ConfigDescription("Percent chance that an item will be replaced with a bundle variant", new AcceptableValueRange<int>(0, 100)));
             config_maxBundlesInShop = Config.Bind("General", "Maximum Bundles In Shop", -1, new ConfigDescription("Maximum number of bundles that can appear of ANY one type. Setting to -1 makes shop ignore this entry", new AcceptableValueRange<int>(-1, 10)));
             config_minConsumablePerBundle = Config.Bind("General", "Mininum consumables per bundle", 0, new ConfigDescription("Minimum amount of items in consumable bundles. Price still scales. Default: 0", new AcceptableValueRange<int>(0, 10)));
@@ -191,26 +197,26 @@ namespace ItemBundles
             Item item = assetBundle.LoadAsset<Item>(itemString);
             if ( item == null )
             {
-                CustomLogger.LogError($"Item {itemString} not found!");
+                ItemBundlesLogger.LogError($"Item {itemString} not found!");
                 return;
             }
 
             REPOLib.Modules.Items.RegisterItem(item);
         }
 
-        internal void RegisterBundleItemCustom(AssetBundle assetBundle, string bundleItemString, string originalItemString = "")
+        internal void RegisterBundleItemCustom(AssetBundle assetBundle, string bundleItemString, string originalItemString = "", string configSectionPrefix = "")
         {
             Item bundleItem = assetBundle.LoadAsset<Item>(bundleItemString);
             if (bundleItem == null)
             {
-                CustomLogger.LogError($"--- Bundle Item {bundleItemString} not found!");
+                ItemBundlesLogger.LogError($"--- Bundle Item \"{bundleItemString}\" not found!");
                 return;
             }
 
             var bundleString = " Bundle";
             if ( !bundleItemString.Contains(bundleString) )
             {
-                CustomLogger.LogError($"--- Item {bundleItemString} is not a bundle! Add \" Bundle\" to item name (WITH THE SPACE)");
+                ItemBundlesLogger.LogError($"--- Item {bundleItemString} is not a bundle! Add \" Bundle\" to item name (WITH THE SPACE)");
                 return;
             }
 
@@ -219,30 +225,30 @@ namespace ItemBundles
 
             if ( !originalItem )
             {
-                CustomLogger.LogError($"--- Didn't find {originalItemString}! Make sure itemAssetName of bundle Item and bundle Prefab is {originalItemString + bundleString}");
+                ItemBundlesLogger.LogError($"--- Didn't find {originalItemString}! Make sure itemAssetName of bundle Item and bundle Prefab is {originalItemString + bundleString}");
                 return;
             }
 
             if (itemBundleInfo.ContainsKey(originalItemString) )
             {
-                CustomLogger.LogWarning($"--- bundleStringPairs {originalItemString} already has an entry {itemBundleInfo[originalItemString]}, we are overriding something!");
+                ItemBundlesLogger.LogWarning($"--- bundleStringPairs {originalItemString} already has an entry {itemBundleInfo[originalItemString]}, we are overriding something!");
             }
 
-            CustomLogger.LogInfo($"--- Adding bundleStringPairs {originalItemString}, {bundleItem.itemAssetName}", true);
+            ItemBundlesLogger.LogInfo($"--- Adding bundleStringPairs {originalItemString}, {bundleItem.itemAssetName}", true);
 
             itemDictionaryShopBlacklist.Add(bundleItem.itemAssetName, bundleItem);
 
             string overrideDesc = "Has Priority over Item Type entry. Ignored if set below 0";
             var bundleInfo = itemBundleInfo[originalItemString] = new BundleShopInfo {
                 bundleItem = bundleItem,
-                config_chanceInShop = Config.Bind("Bundles: Item", $"{originalItem.itemName}: Chance", -1, new ConfigDescription(overrideDesc, new AcceptableValueRange<int>(-1, 100))),
-                config_maxInShop = Config.Bind("Bundles: Item", $"{originalItem.itemName}: Max", -1, new ConfigDescription(overrideDesc, new AcceptableValueRange<int>(-1, 10))),
-                config_priceMultiplier = Config.Bind("Bundles: Item", $"{originalItem.itemName}: Price Multiplier", -1f, new ConfigDescription(overrideDesc, new AcceptableValueRange<float>(-1f, 200f)))
+                config_chanceInShop = Config.Bind($"{configSectionPrefix}Bundles: Item", $"{originalItem.itemName}: Chance", -1, new ConfigDescription(overrideDesc, new AcceptableValueRange<int>(-1, 100))),
+                config_maxInShop = Config.Bind($"{configSectionPrefix}Bundles: Item", $"{originalItem.itemName}: Max", -1, new ConfigDescription(overrideDesc, new AcceptableValueRange<int>(-1, 10))),
+                config_priceMultiplier = Config.Bind($"{configSectionPrefix}Bundles: Item", $"{originalItem.itemName}: Price Multiplier", -1f, new ConfigDescription(overrideDesc, new AcceptableValueRange<float>(-1f, 200f)))
             };
 
             if (bundleItem.itemType == SemiFunc.itemType.grenade || bundleItem.itemType == SemiFunc.itemType.mine)
             {
-                bundleInfo.config_minPerBundle = Config.Bind("Bundles: Item", $"{originalItem.itemName}: Mininum per bundle", -1, new ConfigDescription(overrideDesc, new AcceptableValueRange<int>(-1, 10)));
+                bundleInfo.config_minPerBundle = Config.Bind($"{configSectionPrefix}Bundles: Item", $"{originalItem.itemName}: Mininum per bundle", -1, new ConfigDescription(overrideDesc, new AcceptableValueRange<int>(-1, 10)));
             }
         }
 

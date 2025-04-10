@@ -1,0 +1,31 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c30496d6ae6d6f907456e10a94e01ec6, type: 3}
+  m_Name: Modded Item Upgrade Player Map Player Tracker Bundle
+  m_EditorClassIdentifier: 
+  disabled: 0
+  itemAssetName: Modded Item Upgrade Player Map Player Tracker Bundle
+  itemName: Map Player Tracker Upgrades
+  description: 
+  itemType: 3
+  emojiIcon: 11
+  itemVolume: 6
+  itemSecretShopType: 0
+  colorPreset: {fileID: 11400000, guid: 0d9a3e51e7f7904499722ff95b5f00b3, type: 2}
+  prefab: {fileID: 1310192160991527, guid: 8e1c3c47d061562468e16901f3aa4b6e, type: 3}
+  value: {fileID: 11400000, guid: b995f9d995fc52a4f8dc1a1288a4dfde, type: 2}
+  maxAmount: 10
+  maxAmountInShop: 1
+  maxPurchase: 0
+  maxPurchaseAmount: 1
+  spawnRotationOffset: {x: 0, y: 0, z: 0, w: 1}
+  physicalItem: 1

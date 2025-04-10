@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
+using Unity.VisualScripting;
 using UnityEngine;
 using static SemiFunc;
 using static UnityEngine.SpookyHash;
@@ -47,6 +48,15 @@ namespace ItemBundles
     [HarmonyPatch(typeof(ItemAttributes))]
     internal static class BundlePatch_ItemAttributes
     {
+        [HarmonyPrefix, HarmonyPatch(nameof(ItemAttributes.GetValue))]
+        private static void GetValue_Prefix( ItemAttributes __instance)
+        {
+            if (ItemBundles.Instance.moreUpgradesLoaded )
+            {
+                //Temp patch, overrides price scaling so that it uses base costs
+                //MoreUpgradesCompat.OverrideConfigs();
+            }
+        }
         /// <summary>
         /// Additional code that runs after GetValue to make bundles scale based off of player count. 
         ///     Original method does not return anything so we just have to brute-force recalculate the costs.
@@ -70,7 +80,11 @@ namespace ItemBundles
                     // Recalculate upgrade bundles to use base item instead of self, incase single upgrades have been bought
                     if (__instance.itemType == itemType.item_upgrade)
                     {
+                        ItemBundlesLogger.LogWarning($"---- ITEM {__instance.itemAssetName} VALUE MIN: {__instance.itemValueMin}");
+                        ItemBundlesLogger.LogWarning($"---- ITEM {__instance.itemAssetName} VALUE MAX: {__instance.itemValueMax}");
+                        ItemBundlesLogger.LogWarning($"---- ITEM {__instance.itemAssetName} VALUE MULT: {ShopManager.instance.itemValueMultiplier}");
                         float num = UnityEngine.Random.Range(__instance.itemValueMin, __instance.itemValueMax) * ShopManager.instance.itemValueMultiplier;
+                        ItemBundlesLogger.LogWarning($"---- ITEM {__instance.itemAssetName} VALUE STEP1: {num}");
                         if (num < 1000f)
                         {
                             num = 1000f;
@@ -79,7 +93,12 @@ namespace ItemBundles
                         {
                             num = Mathf.Ceil(num / 1000f);
                         }
+                        ItemBundlesLogger.LogWarning($"---- ITEM {__instance.itemAssetName} VALUE STEP2: {num}");
+                        ItemBundlesLogger.LogWarning($"---- ITEM {__instance.itemAssetName} VALUE STEP2 2: {ShopManager.instance.upgradeValueIncrease}");
+                        ItemBundlesLogger.LogWarning($"---- ITEM {__instance.itemAssetName} VALUE STEP2 3: {(float)StatsManager.instance.GetItemsUpgradesPurchased(BundleHelper.GetItemStringFromBundle(__instance.itemAssetName))}");
                         num += num * ShopManager.instance.upgradeValueIncrease * (float)StatsManager.instance.GetItemsUpgradesPurchased( BundleHelper.GetItemStringFromBundle(__instance.itemAssetName) );
+
+                        ItemBundlesLogger.LogWarning($"---- ITEM {__instance.itemAssetName} VALUE STEP3: {num}");
 
                         __instance.value = (int)num;
                     }
@@ -97,6 +116,7 @@ namespace ItemBundles
                         var twoThirds = playerCount * priceMult;
                         currentValue = Mathf.RoundToInt(currentValue * twoThirds);
 
+                        ItemBundlesLogger.LogWarning($"---- ITEM VALUE INCREASED: {currentValue}");
                         __instance.value = currentValue;
 
                         if (GameManager.Multiplayer())
@@ -151,7 +171,7 @@ namespace ItemBundles
                 // move to IL_004D if above statement is true
 			    new CodeInstruction(OpCodes.Brtrue, exitOperand)
             });
-            CustomLogger.LogInfo("--- ShowingInfo(): ADDING NEW INSTRUCTIONS", true);
+            ItemBundlesLogger.LogInfo("--- ShowingInfo(): ADDING NEW INSTRUCTIONS", true);
 
             return codeMatcher.InstructionEnumeration();
         }
@@ -224,7 +244,7 @@ namespace ItemBundles
                 return;
             }
 
-            CustomLogger.LogInfo($"------ Overriding Shop List", true);
+            ItemBundlesLogger.LogInfo($"------ Overriding Shop List", true);
 
             ItemBundles.Instance.itemDictionaryShop.Clear();
             foreach (KeyValuePair<string, Item> entry in StatsManager.instance.itemDictionary)
@@ -233,11 +253,11 @@ namespace ItemBundles
                 var values = ItemBundles.Instance.itemDictionaryShopBlacklist.Values.ToList();
                 if (keys.Contains(entry.Key) || values.Contains(entry.Value))
                 {
-                    CustomLogger.LogInfo($"------ Blacklisting {entry.Key} or {entry.Value} from shop list", true);
+                    ItemBundlesLogger.LogInfo($"------ Blacklisting {entry.Key} or {entry.Value} from shop list", true);
                     continue;
                 }
 
-                CustomLogger.LogInfo($"------ Adding {entry.Key} or {entry.Value} to shop list", true);
+                ItemBundlesLogger.LogInfo($"------ Adding {entry.Key} or {entry.Value} to shop list", true);
                 ItemBundles.Instance.itemDictionaryShop.Add(entry.Key, entry.Value);
             }
         }
@@ -269,7 +289,7 @@ namespace ItemBundles
             })
             .ThrowIfInvalid("GetAllItemsFromStatsManager(): Couldn't find matching code");
 
-            CustomLogger.LogInfo("--- GetAllItemsFromStatsManager(): ADDING NEW INSTRUCTIONS", true);
+            ItemBundlesLogger.LogInfo("--- GetAllItemsFromStatsManager(): ADDING NEW INSTRUCTIONS", true);
 
             // Replace Ldsfld with Call because we need to access a property instead of a field
             codeMatcher.Opcode = OpCodes.Call;
@@ -300,13 +320,10 @@ namespace ItemBundles
                 bundleShopItemPairs.Value.maxInShop = bundleShopItemPairs.Value.config_maxInShop.Value;
             }
 
-            CustomLogger.LogInfo($"------ Bundling Lists", true);
+            ItemBundlesLogger.LogInfo($"------ Bundling Lists", true);
+            if (!SemiFunc.IsMultiplayer() && ItemBundles.Instance.config_disableBundlesSP.Value) return;
             AttemptBundlesFromList(ref __instance.potentialItems);
             AttemptBundlesFromList(ref __instance.potentialItemConsumables);
-
-            // Health and upgrade bundles have no use in single player
-            if (!SemiFunc.IsMultiplayer()) return;
-
             AttemptBundlesFromList(ref __instance.potentialItemUpgrades);
             AttemptBundlesFromList(ref __instance.potentialItemHealthPacks);
         }
@@ -322,7 +339,7 @@ namespace ItemBundles
                 //TODO Add minimum number
                 if (ItemBundles.Instance.itemBundleInfo.ContainsKey(item.itemAssetName))
                 {
-                    CustomLogger.LogInfo($"-{num}- Found {item.itemAssetName} entry", true);
+                    ItemBundlesLogger.LogInfo($"-{num}- Found {item.itemAssetName} entry", true);
                     var itemTypeBundleInfo = ItemBundles.Instance.itemTypeBundleInfo[item.itemType];
                     var itemBundleInfo = ItemBundles.Instance.itemBundleInfo[item.itemAssetName];
 
@@ -332,7 +349,7 @@ namespace ItemBundles
                     bool maxMet = BundleHelper.GetItemBundleMax(item) == 0;
                     if (maxMet)
                     {
-                        CustomLogger.LogWarning($"-{num}- Already have max bundles for {item.itemAssetName}!", true);
+                        ItemBundlesLogger.LogWarning($"-{num}- Already have max bundles for {item.itemAssetName}!", true);
                         continue;
                     }
 
@@ -340,7 +357,7 @@ namespace ItemBundles
                     if (rand <= bundleFinalChance)
                     {
                         //REPLACE ITEM WITH BUNDLE
-                        CustomLogger.LogWarning($"-{num}- Passed with {rand} {rand <= bundleFinalChance}, Replacing item {tempList[num]} with {itemBundleInfo.bundleItem}!", true);
+                        ItemBundlesLogger.LogWarning($"-{num}- Passed with {rand} {rand <= bundleFinalChance}, Replacing item {tempList[num]} with {itemBundleInfo.bundleItem}!", true);
 
                         tempList[num] = itemBundleInfo.bundleItem;
 
@@ -356,7 +373,7 @@ namespace ItemBundles
                     }
                     else
                     {
-                        CustomLogger.LogError($"-{num}- Failed with {rand} {rand <= bundleFinalChance}, keeping item {tempList[num]}!", true);
+                        ItemBundlesLogger.LogError($"-{num}- Failed with {rand} {rand <= bundleFinalChance}, keeping item {tempList[num]}!", true);
                     }
                 }
             }

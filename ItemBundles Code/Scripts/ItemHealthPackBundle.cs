@@ -139,7 +139,7 @@ namespace ItemBundles
             //Apply final healing
             foreach (KeyValuePair<PlayerAvatar, int> healEntry in playerHealthToHeal)
             {
-                CustomLogger.LogInfo($"{healEntry.Key.playerName} missing {healEntry.Key.playerHealth.maxHealth - healEntry.Key.playerHealth.health} health, healing for {healAmount} base + {healEntry.Value - healAmount} excess!", true);
+                ItemBundlesLogger.LogInfo($"{healEntry.Key.playerName} missing {healEntry.Key.playerHealth.maxHealth - healEntry.Key.playerHealth.health} health, healing for {healAmount} base + {healEntry.Value - healAmount} excess!", true);
                 healEntry.Key.playerHealth.HealOther(healEntry.Value, effect: true);
             }
             _ = StatsManager.instance.itemsPurchased[itemAttributes.item.itemAssetName];
