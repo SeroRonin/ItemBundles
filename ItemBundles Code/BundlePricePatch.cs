@@ -80,11 +80,7 @@ namespace ItemBundles
                     // Recalculate upgrade bundles to use base item instead of self, incase single upgrades have been bought
                     if (__instance.itemType == itemType.item_upgrade)
                     {
-                        ItemBundlesLogger.LogWarning($"---- ITEM {__instance.itemAssetName} VALUE MIN: {__instance.itemValueMin}");
-                        ItemBundlesLogger.LogWarning($"---- ITEM {__instance.itemAssetName} VALUE MAX: {__instance.itemValueMax}");
-                        ItemBundlesLogger.LogWarning($"---- ITEM {__instance.itemAssetName} VALUE MULT: {ShopManager.instance.itemValueMultiplier}");
                         float num = UnityEngine.Random.Range(__instance.itemValueMin, __instance.itemValueMax) * ShopManager.instance.itemValueMultiplier;
-                        ItemBundlesLogger.LogWarning($"---- ITEM {__instance.itemAssetName} VALUE STEP1: {num}");
                         if (num < 1000f)
                         {
                             num = 1000f;
@@ -93,12 +89,7 @@ namespace ItemBundles
                         {
                             num = Mathf.Ceil(num / 1000f);
                         }
-                        ItemBundlesLogger.LogWarning($"---- ITEM {__instance.itemAssetName} VALUE STEP2: {num}");
-                        ItemBundlesLogger.LogWarning($"---- ITEM {__instance.itemAssetName} VALUE STEP2 2: {ShopManager.instance.upgradeValueIncrease}");
-                        ItemBundlesLogger.LogWarning($"---- ITEM {__instance.itemAssetName} VALUE STEP2 3: {(float)StatsManager.instance.GetItemsUpgradesPurchased(BundleHelper.GetItemStringFromBundle(__instance.itemAssetName))}");
                         num += num * ShopManager.instance.upgradeValueIncrease * (float)StatsManager.instance.GetItemsUpgradesPurchased( BundleHelper.GetItemStringFromBundle(__instance.itemAssetName) );
-
-                        ItemBundlesLogger.LogWarning($"---- ITEM {__instance.itemAssetName} VALUE STEP3: {num}");
 
                         __instance.value = (int)num;
                     }

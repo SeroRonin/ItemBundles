@@ -147,12 +147,16 @@ namespace ItemBundles
             }
         }
 
-        public static void RegisterBundleItem_MoreUpgrades( AssetBundle assetBundle, string bundleItemString, string originalItemString = "")
+        public static void RegisterBundleItem_MoreUpgrades( AssetBundle assetBundle, string bundleItemString )
         {
-            ItemBundles.Instance.RegisterBundleItemCustom(assetBundle, bundleItemString, originalItemString, configSectionPrefix: "MoreUpgrades ");
+            ItemBundles.Instance.RegisterBundleItemCustom(assetBundle, bundleItemString, "MoreUpgrades ");
             UpdateItemInfo(bundleItemString);
         }
 
+        /// <summary>
+        /// This updates the bundle's price to match that of the original upgrade
+        /// </summary>
+        /// <param name="bundleItemString"></param>
         public static void UpdateItemInfo( string bundleItemString )
         {
             var item = StatsManager.instance.itemDictionary[bundleItemString];
@@ -161,6 +165,7 @@ namespace ItemBundles
             var item2 = StatsManager.instance.itemDictionary[newString];
             item.value = ScriptableObject.CreateInstance<Value>();
 
+            //Hacky workaround atm
             //For some reason, MoreUpgrades ignores ShopMananger.instance.itemValueMultiplier which is equal to 4 and instead directly sets the costs
             //This just reverses that to make it in line with the game's original values
             //TODO: Make this and other stuff respect MoreUpgrades Configs
