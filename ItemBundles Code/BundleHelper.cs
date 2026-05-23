@@ -151,5 +151,65 @@ namespace ItemBundles
             if (!ItemBundles.Instance.mainMenuReached || SemiFunc.MenuLevel()) return true;
             else return RunManager.instance == null;
         }
+
+        public static void AttemptBundlesFromList(ref List<Item> itemList)
+        {
+            var tempList = new List<Item>(itemList);
+            for (int num = tempList.Count - 1; num >= 0; num--)
+            {
+                var item = tempList[num];
+                tempList[num] = AttemptBundleItem(item);
+            }
+
+            tempList.Shuffle();
+            itemList = tempList;
+        }
+
+        public static Item AttemptBundleItem(Item item)
+        {
+            if (ItemBundles.Instance.itemBundleInfos.ContainsKey(item.prefab.prefabName))
+            {
+                var itemTypeChecked = BundleHelper.ValidateItemType(item);
+                var itemTypeBundleInfo = ItemBundles.Instance.itemTypeBundleInfos[itemTypeChecked];
+                var itemBundleInfo = ItemBundles.Instance.itemBundleInfos[item.prefab.prefabName];
+
+                if (!itemBundleInfo.bundleItem.prefab.Prefab)
+                {
+                    DebugLogger.LogError($"|---- {itemBundleInfo.bundleItem} prefab was null! Skipping entry");
+                    return item;
+                }
+
+                float bundleFinalChance = BundleHelper.GetItemBundleChance(item);
+                bundleFinalChance /= 100f;
+
+                bool maxMet = BundleHelper.GetItemBundleMax(item) == 0;
+                if (maxMet)
+                {
+                    DebugLogger.LogWarning($"|---- Already have max bundles for {item.prefab.prefabName}!", true);
+                    return item;
+                }
+
+                var rand = UnityEngine.Random.Range(0f, 1f);
+                if (rand <= bundleFinalChance)
+                {
+                    DebugLogger.LogWarning($"|---- Passed with {rand} {rand <= bundleFinalChance}, Replacing item {item} with {itemBundleInfo.bundleItem}!", true);
+
+                    if (itemTypeBundleInfo.maxInShop > 0)
+                    {
+                        itemTypeBundleInfo.maxInShop--;
+                    }
+
+                    if (itemBundleInfo.maxInShop > 0)
+                    {
+                        itemBundleInfo.maxInShop--;
+                    }
+
+                    return itemBundleInfo.bundleItem;
+                }
+                DebugLogger.LogInfo($"|---- Failed with {rand} {rand <= bundleFinalChance}, keeping item {item}!", true);
+            }
+
+            return item;
+        }
     }
 }

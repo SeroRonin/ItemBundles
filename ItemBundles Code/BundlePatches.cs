@@ -6,6 +6,7 @@ using System.Linq;
 using System.Reflection.Emit;
 using Unity.VisualScripting;
 using UnityEngine;
+using UnityEngine.XR;
 using static SemiFunc;
 
 namespace ItemBundles
@@ -280,7 +281,7 @@ namespace ItemBundles
         /// <summary>
         /// IL Transpiler that replaces StatsManager.instance.itemDictionary with ItemBundles.Instance.itemDicitonaryShop
         ///     itemDictionaryShop is populated in the prefix above and simply copies the itemDicitonary, while omiting anything in itemDicitonaryShopBlacklist
-        ///     this allows us to add items to the game without having them appear in the shop itself, something the base game nor REPOlib currently support
+        ///     this allows us to add items to the game without having them appear in the shop itself, something the base game nor REPOlib currently support(? unknown if this is still true, too lazy to research because this works)
         /// </summary>
         /// <param name="instructions"></param>
         /// <returns></returns>
@@ -295,7 +296,6 @@ namespace ItemBundles
             // foreach (Item item in ItemBundles.instance.itemDictionaryShop.Values)
             //
 
-            // Expect IL_003F
             codeMatcher.MatchForward(false, (CodeMatch[])(object)new CodeMatch[3]
             {
                 new CodeMatch((OpCode?)OpCodes.Ldsfld),
@@ -336,69 +336,92 @@ namespace ItemBundles
             }
 
             if (!SemiFunc.IsMultiplayer() && ItemBundles.Instance.config_disableBundlesSP.Value) return;
-            AttemptBundlesFromList(ref __instance.potentialItems);
-            AttemptBundlesFromList(ref __instance.potentialItemConsumables);
-            AttemptBundlesFromList(ref __instance.potentialItemUpgrades);
-            AttemptBundlesFromList(ref __instance.potentialItemHealthPacks);
+            BundleHelper.AttemptBundlesFromList(ref __instance.potentialItems);
+            BundleHelper.AttemptBundlesFromList(ref __instance.potentialItemConsumables);
+            BundleHelper.AttemptBundlesFromList(ref __instance.potentialItemUpgrades);
+            BundleHelper.AttemptBundlesFromList(ref __instance.potentialItemHealthPacks);
             DebugLogger.LogInfo($"|---- GetAllItemsFromStatsManager_Postfix(): Bundling Lists ----|", true);
         }
+    }
 
-        private static void AttemptBundlesFromList(ref List<Item> itemList)
+    [HarmonyPatch(typeof(UpgradeStand))]
+    internal static class BundlePatch_UpdgradeStand
+    {
+        /// <summary>
+        /// IL Transpiler that replaces StatsManager.instance.itemDictionary with ItemBundles.Instance.itemDicitonaryShop
+        ///     itemDictionaryShop is populated in the prefix to ShopManager.GetAllItemsFromStatsManager and simply copies the itemDicitonary, while omiting anything in itemDicitonaryShopBlacklist
+        ///     this allows us to add items to the game without having them appear in the shop itself, something the base game nor REPOlib currently support(? unknown if this is still true, too lazy to research because this works)
+        /// </summary>
+        /// <param name="instructions"></param>
+        /// <returns></returns>
+        [HarmonyTranspiler, HarmonyPatch(nameof(UpgradeStand.GetWeightedUpgradeExcluding))]
+        static IEnumerable<CodeInstruction> GetWeightedUpgradeExcluding_Transpiler(IEnumerable<CodeInstruction> instructions)
         {
-            var tempList = new List<Item>(itemList);
-            for (int num = tempList.Count - 1; num >= 0; num--)
+            var codeMatcher = new CodeMatcher(instructions /*, ILGenerator generator*/);
+            //
+            // Expected Behavior: Replace dictionary at GetWeightedUpgradeExcluding() Line 7
+            // foreach (Item item in StatsManager.instance.itemDictionary.Values)
+            // to
+            // foreach (Item item in ItemBundles.instance.itemDictionaryShop.Values)
+            //
+
+            codeMatcher.MatchForward(false, (CodeMatch[])(object)new CodeMatch[3]
             {
-                var item = tempList[num];
+                new CodeMatch((OpCode?)OpCodes.Ldsfld),
+                new CodeMatch((OpCode?)OpCodes.Ldfld),
+                new CodeMatch((OpCode?)OpCodes.Callvirt)
+            })
+            .ThrowIfInvalid("|---- GetWeightedUpgradeExcluding(): Couldn't find matching code");
 
-                // Cant replace with a bundle if we don't have an entry at all
-                //TODO Add minimum number
-                if (ItemBundles.Instance.itemBundleInfos.ContainsKey(item.prefab.prefabName))
-                {  
-                    var itemTypeChecked = BundleHelper.ValidateItemType(item);
-                    var itemTypeBundleInfo = ItemBundles.Instance.itemTypeBundleInfos[itemTypeChecked];
-                    var itemBundleInfo = ItemBundles.Instance.itemBundleInfos[item.prefab.prefabName];
+            DebugLogger.LogInfo("|---- GetWeightedUpgradeExcluding(): ADDING NEW INSTRUCTIONS", true);
 
-                    if (!itemBundleInfo.bundleItem.prefab.Prefab)
-                    {
-                        DebugLogger.LogError($"|---- {itemBundleInfo.bundleItem} prefab was null! Skipping entry");
-                        continue;
-                    }
+            // Replace Ldsfld with Call because we need to access a property instead of a field
+            codeMatcher.Opcode = OpCodes.Call;
+            codeMatcher.Operand = AccessTools.PropertyGetter(typeof(ItemBundles), "Instance");
+            codeMatcher.Advance(1);
+            codeMatcher.Operand = AccessTools.Field(typeof(ItemBundles), "itemDictionaryShop");
 
-                    float bundleFinalChance = BundleHelper.GetItemBundleChance(item);
-                    bundleFinalChance /= 100f;
+            return codeMatcher.InstructionEnumeration();
+        }
 
-                    bool maxMet = BundleHelper.GetItemBundleMax(item) == 0;
-                    if (maxMet)
-                    {
-                        DebugLogger.LogWarning($"|---- Already have max bundles for {item.prefab.prefabName}!", true);
-                        continue;
-                    }
+        /// <summary>
+        /// IL Transpiler that rolls new upgrade choices against the configured bundle chance before spawning them
+        /// </summary>
+        /// <param name="instructions"></param>
+        /// <returns></returns>
+        [HarmonyTranspiler, HarmonyPatch(nameof(UpgradeStand.SpawnNewUpgrades))]
+        static IEnumerable<CodeInstruction> SpawnNewUpgrades_Transpiler(IEnumerable<CodeInstruction> instructions)
+        {
+            var codeMatcher = new CodeMatcher(instructions /*, ILGenerator generator*/);
+            //
+            // Expected Behavior: Add AttemptBundleItem to SpawnNewUpgrades at line 17
+            // if (weightedUpgradeExcluding != null)
+            // {
+            //    string name = weightedUpgradeExcluding.name;
+            // to
+            // if (weightedUpgradeExcluding != null)
+            // {
+            //    weightedUpgradeExlcuding = BundleHelper.AttemptBundleItem( weightedUpgradeExlcuding );
+            //    string name = weightedUpgradeExcluding.name;
 
-                    var rand = UnityEngine.Random.Range(0f, 1f);
-                    if (rand <= bundleFinalChance)
-                    {
-                        DebugLogger.LogWarning($"|---- Passed with {rand} {rand <= bundleFinalChance}, Replacing item {tempList[num]} with {itemBundleInfo.bundleItem}!", true);
-                        tempList[num] = itemBundleInfo.bundleItem;
+            codeMatcher.MatchForward(false, (CodeMatch[])(object)new CodeMatch[3]
+            {
+                new CodeMatch((OpCode?)OpCodes.Ldloc_S),
+                new CodeMatch((OpCode?)OpCodes.Callvirt),
+                new CodeMatch((OpCode?)OpCodes.Stloc_S)
+            })
+            .ThrowIfInvalid("|---- GetWeightedUpgradeExcluding(): Couldn't find matching code");
 
-                        if (itemTypeBundleInfo.maxInShop > 0)
-                        {
-                            itemTypeBundleInfo.maxInShop--;
-                        }
+            DebugLogger.LogInfo("|---- GetWeightedUpgradeExcluding(): ADDING NEW INSTRUCTIONS", true);
 
-                        if (itemBundleInfo.maxInShop > 0)
-                        {
-                            itemBundleInfo.maxInShop--;
-                        }
-                    }
-                    else
-                    {
-                        DebugLogger.LogInfo($"|---- Failed with {rand} {rand <= bundleFinalChance}, keeping item {tempList[num]}!", true);
-                    }
-                }
-            }
+            // Replace Ldsfld with Call because we need to access a property instead of a field
+            var tempOpCode = codeMatcher.Opcode;
+            var tempOperand = codeMatcher.Operand;
+            codeMatcher.InsertAndAdvance(new CodeInstruction(tempOpCode, tempOperand));
+            codeMatcher.InsertAndAdvance( new CodeInstruction(OpCodes.Call, AccessTools.Method(typeof(BundleHelper), nameof(BundleHelper.AttemptBundleItem))));
+            codeMatcher.InsertAndAdvance(new CodeInstruction(OpCodes.Stloc_S, tempOperand));
 
-            tempList.Shuffle();
-            itemList = tempList;
+            return codeMatcher.InstructionEnumeration();
         }
     }
 

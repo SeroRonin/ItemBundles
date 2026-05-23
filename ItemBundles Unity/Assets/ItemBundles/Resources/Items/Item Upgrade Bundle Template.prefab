@@ -848,9 +848,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3d0893f666540582cc8e6192b9b0efaa, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  autoAdd: 0
   sprite: {fileID: 21300000, guid: c29b5ba24079be141abe6f2fdb522370, type: 2}
   color: {r: 0, g: 1, b: 0.92, a: 1}
-  mapCustomEntity: {fileID: 0}
 --- !u!82 &82335718900830258
 AudioSource:
   m_ObjectHideFlags: 0
@@ -1006,6 +1006,9 @@ MonoBehaviour:
   toggleState: 0
   playSound: 0
   autoTurnOffWhenEquipped: 1
+  onToggle:
+    m_PersistentCalls:
+      m_Calls: []
 --- !u!114 &2055730454358347890
 MonoBehaviour:
   m_ObjectHideFlags: 0

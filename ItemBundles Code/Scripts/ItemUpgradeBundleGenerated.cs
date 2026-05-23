@@ -46,6 +46,7 @@ namespace ItemBundles
             {
                 impactDetector.destroyDisable = false;
                 rb.isKinematic = false;
+                GetComponent<MapCustom>().autoAdd = true;
             }
         }
 
