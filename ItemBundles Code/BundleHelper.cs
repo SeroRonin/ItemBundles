@@ -1,5 +1,7 @@
 ﻿using Steamworks.Ugc;
+using System;
 using System.Collections.Generic;
+using Unity.Mathematics;
 using UnityEngine;
 using static SemiFunc;
 
@@ -19,16 +21,14 @@ namespace ItemBundles
             return output;
         }
 
-        public static int GetItemBundleMax(Item item)
+        public static int GetItemBundleBudget(Item item)
         {
             var itemTypeChecked = ValidateItemType(item);
-            var output = ItemBundles.Instance.itemTypeBundleInfos[itemTypeChecked].maxInShop;
-            if (ItemBundles.Instance.itemBundleInfos[item.prefab.prefabName].maxInShop >= 0)
-            {
-                output = ItemBundles.Instance.itemBundleInfos[item.prefab.prefabName].maxInShop;
-            }
+            var global = ItemBundles.globalSpawnBudget;
+            var perItemType = ItemBundles.Instance.itemTypeBundleInfos[itemTypeChecked].spawnBudget >= 0 ? ItemBundles.Instance.itemTypeBundleInfos[itemTypeChecked].spawnBudget : global;
+            var perItemUnique = ItemBundles.Instance.itemBundleInfos[item.prefab.prefabName].spawnBudget >= 0 ? ItemBundles.Instance.itemBundleInfos[item.prefab.prefabName].spawnBudget : perItemType ;
 
-            return output;
+            return Math.Min(global, Math.Min(perItemType, perItemUnique));
         }
 
         public static int GetItemBundleMinItem(Item item)
@@ -182,7 +182,7 @@ namespace ItemBundles
                 float bundleFinalChance = BundleHelper.GetItemBundleChance(item);
                 bundleFinalChance /= 100f;
 
-                bool maxMet = BundleHelper.GetItemBundleMax(item) == 0;
+                bool maxMet = BundleHelper.GetItemBundleBudget(item) == 0;
                 if (maxMet)
                 {
                     DebugLogger.LogWarning($"|---- Already have max bundles for {item.prefab.prefabName}!", true);
@@ -194,16 +194,9 @@ namespace ItemBundles
                 {
                     DebugLogger.LogWarning($"|---- Passed with {rand} {rand <= bundleFinalChance}, Replacing item {item} with {itemBundleInfo.bundleItem}!", true);
 
-                    if (itemTypeBundleInfo.maxInShop > 0)
-                    {
-                        itemTypeBundleInfo.maxInShop--;
-                    }
-
-                    if (itemBundleInfo.maxInShop > 0)
-                    {
-                        itemBundleInfo.maxInShop--;
-                    }
-
+                    ItemBundles.globalSpawnBudget--;
+                    itemTypeBundleInfo.spawnBudget--;
+                    itemBundleInfo.spawnBudget--;
                     return itemBundleInfo.bundleItem;
                 }
                 DebugLogger.LogInfo($"|---- Failed with {rand} {rand <= bundleFinalChance}, keeping item {item}!", true);

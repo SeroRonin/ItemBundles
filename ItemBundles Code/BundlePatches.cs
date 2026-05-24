@@ -324,15 +324,14 @@ namespace ItemBundles
         private static void GetAllItemsFromStatsManager_Postfix(ShopManager __instance)
         {
             //TODO: Re-add max total bundles once I figure out how to not make it stop on first list.
+            ItemBundles.globalSpawnBudget = ItemBundles.Instance.config_maxBundlesInShop.Value;
             foreach (KeyValuePair<itemType, ItemBundles.BundleShopInfo> bundleShopTypePairs in ItemBundles.Instance.itemTypeBundleInfos)
             {
-                bundleShopTypePairs.Value.chanceInShop = bundleShopTypePairs.Value.config_chanceInShop.Value == -1 ? ItemBundles.Instance.config_chanceBundlesInShop.Value : bundleShopTypePairs.Value.config_chanceInShop.Value;
-                bundleShopTypePairs.Value.maxInShop = bundleShopTypePairs.Value.config_maxInShop.Value == -1 ? ItemBundles.Instance.config_maxBundlesInShop.Value : bundleShopTypePairs.Value.config_maxInShop.Value;
+                bundleShopTypePairs.Value.spawnBudget = bundleShopTypePairs.Value.config_maxInShop.Value;
             }
             foreach (KeyValuePair<string, ItemBundles.BundleShopInfo> bundleShopItemPairs in ItemBundles.Instance.itemBundleInfos)
             {
-                bundleShopItemPairs.Value.chanceInShop = bundleShopItemPairs.Value.config_chanceInShop.Value;
-                bundleShopItemPairs.Value.maxInShop = bundleShopItemPairs.Value.config_maxInShop.Value;
+                bundleShopItemPairs.Value.spawnBudget = bundleShopItemPairs.Value.config_maxInShop.Value;
             }
 
             if (!SemiFunc.IsMultiplayer() && ItemBundles.Instance.config_disableBundlesSP.Value) return;
@@ -410,9 +409,9 @@ namespace ItemBundles
                 new CodeMatch((OpCode?)OpCodes.Callvirt),
                 new CodeMatch((OpCode?)OpCodes.Stloc_S)
             })
-            .ThrowIfInvalid("|---- GetWeightedUpgradeExcluding(): Couldn't find matching code");
+            .ThrowIfInvalid("|---- SpawnNewUpgrades(): Couldn't find matching code");
 
-            DebugLogger.LogInfo("|---- GetWeightedUpgradeExcluding(): ADDING NEW INSTRUCTIONS", true);
+            DebugLogger.LogInfo("|---- SpawnNewUpgrades(): ADDING NEW INSTRUCTIONS", true);
 
             // Replace Ldsfld with Call because we need to access a property instead of a field
             var tempOpCode = codeMatcher.Opcode;

@@ -46,15 +46,23 @@ namespace ItemBundles
 
         public GameObject templateUpgradeBundlePrefab { get; set; }
 
+        static public int globalSpawnBudget;
+
         public class BundleShopInfo
         {
             public Item bundleItem;
-            public int chanceInShop;
+            public int chanceInShop
+            {
+                get
+                {
+                    return config_chanceInShop.Value;
+                }
+            }
             /// <summary>
             /// Used to track how many are in current shop list
             /// Resets every shop cycle
             /// </summary>
-            public int maxInShop;
+            public int spawnBudget;
             public ConfigEntry<int> config_chanceInShop;
             public ConfigEntry<int> config_maxInShop;
             public ConfigEntry<int> config_minPerBundle;
