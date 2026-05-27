@@ -9,7 +9,7 @@ using UnityEngine;
 
 namespace ItemBundles
 {
-    [BepInPlugin("SeroRonin.ItemBundles", "ItemBundles", "1.5.0")]
+    [BepInPlugin("SeroRonin.ItemBundles", "ItemBundles", "1.5.1")]
     [BepInDependency(REPOLib.MyPluginInfo.PLUGIN_GUID, BepInDependency.DependencyFlags.HardDependency)]
     [BepInDependency("nickklmao.repoconfig", BepInDependency.DependencyFlags.HardDependency)]
     [BepInDependency("bulletbot.moreupgrades", BepInDependency.DependencyFlags.SoftDependency)]
@@ -304,8 +304,8 @@ namespace ItemBundles
             //TODO: Re-add max total bundles once I figure out how to not make it stop on first list.
             config_disableBundlesSP = Config.Bind("General", "Disable Bundles in Singleplayer", true, new ConfigDescription("Whether bundles are disabled when doing a singleplayer run"));
             config_chanceBundlesInShop = Config.Bind("General", "Bundle Chance", 20, new ConfigDescription("Percent chance that an item will be replaced with a bundle variant", new AcceptableValueRange<int>(0, 100)));
-            config_maxBundlesInShop = Config.Bind("General", "Maximum Bundles In Shop", -1, new ConfigDescription("Maximum number of bundles that can appear of ANY one type. Setting to -1 makes shop ignore this entry", new AcceptableValueRange<int>(-1, 10)));
-            config_minPerBundle = Config.Bind("General", "Mininum consumables per bundle", 0, new ConfigDescription("Minimum amount of items in valid bundles. Price still scales. Default: 0", new AcceptableValueRange<int>(0, 10)));
+            config_maxBundlesInShop = Config.Bind("General", "Maximum Bundles In Shop", -1, new ConfigDescription("Maximum number of bundles that can appear of ANY one type. Setting to -1 makes shop ignore this entry", new AcceptableValueRange<int>(-1, 100)));
+            config_minPerBundle = Config.Bind("General", "Mininum consumables per bundle", 0, new ConfigDescription("Minimum amount of items in valid bundles. Price still scales. Default: 0", new AcceptableValueRange<int>(0, 100)));
             config_priceMultiplier = Config.Bind("General", "Bundle Price Multiplier", 66.66f, new ConfigDescription("Multiplier of total item costs that bundles have", new AcceptableValueRange<float>(0f, 200f)));
 
             string overrideDesc = "Has priority over General entry. Ignored if set below 0";

@@ -335,9 +335,9 @@ namespace ItemBundles
             }
 
             if (!SemiFunc.IsMultiplayer() && ItemBundles.Instance.config_disableBundlesSP.Value) return;
-            BundleHelper.AttemptBundlesFromList(ref __instance.potentialItems);
-            BundleHelper.AttemptBundlesFromList(ref __instance.potentialItemConsumables);
             BundleHelper.AttemptBundlesFromList(ref __instance.potentialItemUpgrades);
+            BundleHelper.AttemptBundlesFromList(ref __instance.potentialItemConsumables);
+            BundleHelper.AttemptBundlesFromList(ref __instance.potentialItems);
             BundleHelper.AttemptBundlesFromList(ref __instance.potentialItemHealthPacks);
             DebugLogger.LogInfo($"|---- GetAllItemsFromStatsManager_Postfix(): Bundling Lists ----|", true);
         }

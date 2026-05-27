@@ -12,7 +12,7 @@ namespace ItemBundles
         public static int GetItemBundleChance(Item item)
         {
             var itemTypeChecked = ValidateItemType(item);
-            var output = ItemBundles.Instance.itemTypeBundleInfos[itemTypeChecked].chanceInShop;
+            var output = ItemBundles.Instance.itemTypeBundleInfos[itemTypeChecked].chanceInShop >= 0 ? ItemBundles.Instance.itemTypeBundleInfos[itemTypeChecked].chanceInShop : ItemBundles.Instance.config_chanceBundlesInShop.Value;
             if (ItemBundles.Instance.itemBundleInfos[item.prefab.prefabName].chanceInShop >= 0)
             {
                 output = ItemBundles.Instance.itemBundleInfos[item.prefab.prefabName].chanceInShop;
@@ -190,7 +190,7 @@ namespace ItemBundles
                 }
 
                 var rand = UnityEngine.Random.Range(0f, 1f);
-                if (rand <= bundleFinalChance)
+                if (rand <= bundleFinalChance || bundleFinalChance < 0)
                 {
                     DebugLogger.LogWarning($"|---- Passed with {rand} {rand <= bundleFinalChance}, Replacing item {item} with {itemBundleInfo.bundleItem}!", true);
 

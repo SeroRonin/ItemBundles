@@ -4,7 +4,7 @@
 		<LangVersion>11</LangVersion>
 		<Nullable>enable</Nullable>
 		<Authors>SeroRonin</Authors>
-		<Version>1.5.0</Version>
+		<Version>1.5.1</Version>
 	</PropertyGroup>
 	
   <!-- Add Package Sources -->
